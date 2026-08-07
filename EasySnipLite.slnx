@@ -1,0 +1,8 @@
+<Solution>
+  <Folder Name="/src/">
+    <Project Path="src/EasySnipLite/EasySnipLite.csproj" />
+  </Folder>
+  <Folder Name="/tests/">
+    <Project Path="tests/EasySnipLite.Tests/EasySnipLite.Tests.csproj" />
+  </Folder>
+</Solution>

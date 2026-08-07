@@ -1,0 +1,11 @@
+// UseWPF + UseWindowsForms 双引入造成的类型歧义，统一用全局别名消解。
+global using Application = System.Windows.Application;
+global using Point = System.Windows.Point;
+global using Rect = System.Windows.Rect;
+global using Size = System.Windows.Size;
+global using Rectangle = System.Windows.Shapes.Rectangle;
+global using KeyEventArgs = System.Windows.Input.KeyEventArgs;
+global using Cursors = System.Windows.Input.Cursors;
+global using DataObject = System.Windows.DataObject;
+global using DataFormats = System.Windows.DataFormats;
+global using Clipboard = System.Windows.Clipboard;
