@@ -1,0 +1,40 @@
+<Window x:Class="EasySnipLite.Selection.RegionSelectionWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        Title="EasySnipLite"
+        WindowStyle="None"
+        AllowsTransparency="True"
+        Background="Transparent"
+        Topmost="True"
+        ShowInTaskbar="False"
+        Focusable="True"
+        WindowStartupLocation="Manual"
+        ResizeMode="NoResize">
+    <Canvas x:Name="RootCanvas">
+        <!-- 冻结的画面（物理像素 1:1 显示） -->
+        <Image x:Name="FrozenImage" Stretch="None" />
+        <!-- 选区外的暗化遮罩（四块） -->
+        <Rectangle x:Name="MaskTop" Fill="#80000000" />
+        <Rectangle x:Name="MaskBottom" Fill="#80000000" />
+        <Rectangle x:Name="MaskLeft" Fill="#80000000" />
+        <Rectangle x:Name="MaskRight" Fill="#80000000" />
+        <!-- 选区边框 -->
+        <Rectangle x:Name="SelectionRect"
+                   Stroke="#FF2D9CFF"
+                   StrokeThickness="1"
+                   StrokeDashArray="2 2"
+                   Fill="#12FFFFFF"
+                   Visibility="Collapsed" />
+        <!-- 尺寸标签 -->
+        <Border x:Name="SizeLabel"
+                Visibility="Collapsed"
+                Background="#CC000000"
+                CornerRadius="3"
+                Padding="5,2">
+            <TextBlock x:Name="SizeText"
+                       Foreground="White"
+                       FontSize="12"
+                       FontFamily="Segoe UI" />
+        </Border>
+    </Canvas>
+</Window>
