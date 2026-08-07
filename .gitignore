@@ -1,0 +1,10 @@
+# ---- USER ----
+1.md
+
+# ---- .NET ----
+bin/
+obj/
+*.user
+*.suo
+.vs/
+*.userprefs
