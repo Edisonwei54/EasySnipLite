@@ -8,3 +8,18 @@ obj/
 *.suo
 .vs/
 *.userprefs
+
+# ---- 发布与测试产物 ----
+dist/
+publish/
+TestResults/
+*.log
+
+# ---- 验证脚本运行产物（脚本本身 tools/verify-*.ps1 保留） ----
+tools/*.png
+tools/*-result.txt
+
+# ---- IDE / 系统 ----
+.idea/
+Thumbs.db
+Desktop.ini

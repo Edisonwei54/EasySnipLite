@@ -1,7 +1,0 @@
-OK: app started pid=221584
-OK: overlay visible (count=2)
-OK: drag done (400,300) -> (700,500)
-OK: overlay closed after Enter
-OK: clipboard image 300x200
-OK: saved D:\EasySnipLite\tools\m1-capture.png
-M1 verification PASSED
