@@ -43,8 +43,9 @@
 7. **PowerShell `$pid` 是只读自动变量**：不能作函数参数名，否则"变量为只读"错误。
 8. **ToggleButton 无 GroupName**（RadioButton 才有）→ 工具互斥手动维护。
 
-### M4 滚动长截图（2026-08-08 已决定跳过；进度存档于 feature/m4-scroll-capture @ 3d45300，未合并）
-> 用户决定：M4 功能整体跳过（不做/暂缓）。以下为存档记录，若将来捡起可从该分支继续。
+### M4 滚动长截图（2026-08-08 已决定跳过；实现已合并进 main，分支保留）
+> 用户决定：M4 功能整体跳过（不做/暂缓）。实现 + 单测经 **PR #4 合并进 main（9995a59）**存档；
+> 分支 `feature/m4-scroll-capture` 保留（远端 + 本地，HEAD b2bb023）。以下为存档记录，若将来捡起可直接继续。
 **已完成（TDD + 实现，未通过 E2E）**：
 - `ImageAligner` 纯逻辑 TDD（15 单测）：灰度降采样 + 按行 SAD 两级搜索垂直偏移；**采样只忽略右缘滚动条**（左缘行号/缩进是重要对齐特征——曾因忽略左缘 6% 导致 notepad 等左对齐文本页面无法对齐）；`ScrollbarStrip`/噪声/纯色/行相似文本（回归）全覆盖
 - `ScrollInput`（SendInput 滚轮，INPUt union FieldOffset(8) 布局）+ `Win32` 补充
@@ -107,7 +108,7 @@
 
 | 里程碑 | 内容 | 验证方式 |
 |--------|------|----------|
-| ~~M4 滚动长截图~~（已跳过，存档） | ImageAligner/ScrollInput/Engine/Preview 实现+单测 ✅，E2E 阻塞截帧陈旧；进度在 feature/m4-scroll-capture @ 3d45300 | — |
+| ~~M4 滚动长截图~~（已跳过，存档） | ImageAligner/ScrollInput/Engine/Preview 实现+单测 ✅（PR #4 已合并进 main），E2E 阻塞截帧陈旧 | — |
 | **M5 贴屏+托盘**（下一个） | PinWindow（1:1/穿透/透明度/缩放）、托盘菜单完善、单实例 Mutex、开机自启 | 手工 |
 | M6 设置+i18n | 快捷键录制、语言/保存目录/滚轮步长设置、三语切换 | 手工 |
 | M7 打磨+发布 | 边界处理、错误提示、单文件 publish 冒烟、README | 冒烟测试 |
