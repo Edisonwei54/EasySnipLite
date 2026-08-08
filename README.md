@@ -2,7 +2,7 @@
 
 轻量快速的 Windows 截图与标注工具 —— 按下全局快捷键，拖拽框选区域，标注后复制、保存或贴到屏幕。专注日常截图与无缝长截图。
 
-> 当前进度：M0 脚手架与 M1 截图主干已完成（热键唤起 → 冻结屏幕 → 框选 → 复制到剪贴板已可用）；标注、长截图、贴屏等模块开发中。详见 [docs/PROGRESS.md](docs/PROGRESS.md)。
+> 当前进度：M0 脚手架、M1 截图主干、M2 选区完善已完成（热键唤起 → 冻结屏幕 → 框选 → 8 手柄调整 / 方向键微调 / 放大镜 → 复制或保存已可用）；标注、长截图、贴屏等模块开发中。详见 [docs/PROGRESS.md](docs/PROGRESS.md)。
 
 ## ✨ 功能
 
@@ -66,6 +66,12 @@ EasySnipLite.slnx
 
 - [设计文档](docs/superpowers/specs/2026-08-07-easysniplite-design.md)
 - [里程碑进度与踩坑记录](docs/PROGRESS.md)
+
+## 📝 项目来源
+
+本仓库原本是一个空项目。第一版产品需求描述参考了 [LiteSnap](https://github.com/HuibingLin/LiteSnap) 项目的简介与功能清单撰写,在此基础上确定了 EasySnipLite 的产品定位与功能范围。
+
+代码由 Claude Code(deepseek-v4-flash 模型)辅助生成。
 
 ## License
 
