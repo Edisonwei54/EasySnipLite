@@ -142,8 +142,15 @@ public partial class EditorWindow : Window
 
     private void Pin_Click(object sender, RoutedEventArgs e)
     {
-        PinRequested?.Invoke(_vm.Compose());
-        Close();
+        try
+        {
+            PinRequested?.Invoke(_vm.Compose());
+            Close();
+        }
+        catch (Exception ex)
+        {
+            MessageBox.Show(this, $"贴屏失败：{ex.Message}", "EasySnipLite", MessageBoxButton.OK, MessageBoxImage.Error);
+        }
     }
 
     // ---- 输入面板 ----

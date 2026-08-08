@@ -32,6 +32,12 @@ public partial class PinWindow : Window
         _pixelY = pixelY;
         PinImage.Source = image;
         Loaded += OnLoaded;
+        // 跨屏拖动到不同 DPI 显示器时刷新缩放比例（DpiChanged 在窗口句柄存在后触发，WPF 保证）
+        DpiChanged += (_, _) =>
+        {
+            _dpiScale = VisualTreeHelper.GetDpi(this).DpiScaleX;
+            ApplyLayout();
+        };
     }
 
     public bool IsPassthrough
@@ -41,6 +47,7 @@ public partial class PinWindow : Window
         {
             if (_passthrough == value) return;
             _passthrough = value;
+            PassthroughMenuItem.IsChecked = _passthrough; // 同步菜单勾选态(Checked 事件再入被早退挡住,无递归)
             ApplyPassthrough();
         }
     }

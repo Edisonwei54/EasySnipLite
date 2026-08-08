@@ -3,6 +3,7 @@ using System.Windows;
 using System.Windows.Media.Imaging;
 using EasySnipLite.Core.Hotkeys;
 using EasySnipLite.Core.Imaging;
+using EasySnipLite.Core.Native;
 using EasySnipLite.Selection;
 using EasySnipLite.Pin;
 using EasySnipLite.Stitching;
@@ -18,6 +19,7 @@ public partial class App : Application
     private TrayIconService? _tray;
     private Mutex? _mutex; // 单实例，持有引用防 GC
     private readonly List<PinWindow> _pins = new();
+    private bool _passthroughKeyPressed; // 防 Ctrl+Shift+P 按住 auto-repeat 反复切换
 
     protected override void OnStartup(StartupEventArgs e)
     {
@@ -63,10 +65,17 @@ public partial class App : Application
             return;
         }
         // 贴屏穿透全局热键：Ctrl+Shift+P（穿透后鼠标点不到窗口，此为恢复手段）
-        if (evt.Type == KeyEventType.KeyDown && evt.VirtualKey == 0x50 /*VK_P*/
-            && evt.CtrlDown && evt.ShiftDown)
+        if (evt.VirtualKey == Win32.VK_P && evt.CtrlDown && evt.ShiftDown)
         {
-            Dispatcher.BeginInvoke(TogglePinPassthrough);
+            if (evt.Type == KeyEventType.KeyUp)
+            {
+                _passthroughKeyPressed = false;
+            }
+            else if (evt.Type == KeyEventType.KeyDown && !_passthroughKeyPressed)
+            {
+                _passthroughKeyPressed = true;
+                Dispatcher.BeginInvoke(TogglePinPassthrough);
+            }
         }
     }
 

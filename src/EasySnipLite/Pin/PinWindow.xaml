@@ -10,7 +10,7 @@
     </Border>
     <Window.ContextMenu>
         <ContextMenu>
-            <MenuItem Header="鼠标穿透" IsCheckable="True" Checked="Passthrough_Toggled" Unchecked="Passthrough_Toggled"/>
+            <MenuItem x:Name="PassthroughMenuItem" Header="鼠标穿透" IsCheckable="True" Checked="Passthrough_Toggled" Unchecked="Passthrough_Toggled"/>
             <MenuItem Header="透明度">
                 <MenuItem Header="100%" Tag="1.0" Click="Opacity_Click"/>
                 <MenuItem Header="85%" Tag="0.85" Click="Opacity_Click"/>

@@ -142,6 +142,7 @@ internal static class Win32
 
     // ---- 贴屏热键与窗口刷新（M5 用） ----
     public const int VK_SHIFT = 0x10;
+    public const int VK_P = 0x50;
 
     public const uint SWP_NOSIZE = 0x0001;
     public const uint SWP_NOMOVE = 0x0002;
