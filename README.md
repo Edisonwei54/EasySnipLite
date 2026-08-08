@@ -45,7 +45,7 @@ dotnet test EasySnipLite.slnx
 ```
 EasySnipLite.slnx
 ├─ src/EasySnipLite/        WPF 主程序（Core / Selection / Editor / Stitching / Pin / Tray）
-├─ tests/EasySnipLite.Tests/ xUnit 单测（拼接对齐、撤销栈、热键时序等纯逻辑）
+├─ tests/EasySnipLite.Tests/ xUnit 单测（拼接对齐、撤销栈、热键时序、贴屏换算等纯逻辑）
 ├─ tools/                   端到端验证脚本
 └─ docs/                    设计文档与里程碑进度
 ```
@@ -60,7 +60,7 @@ EasySnipLite.slnx
 | M3     | 标注编辑器（矢量对象 + 撤销重做）            | ✅ 完成（E2E 验证通过） |
 | M4     | 滚动长截图（自动滚动 + 图像拼接 + 实时预览） | ⏸ 已跳过（实现+单测已存档，E2E 阻塞） |
 | M5     | 贴屏 + 托盘完善 + 单实例                     | ✅ 完成（单测 121/121，手工 E2E 已验证） |
-| M6     | 设置页 + 英/简/繁多语言                      | 待开发                  |
+| M6     | 设置页（快捷键录制/语言/保存目录/开机自启）+ 三语 | 待开发                  |
 | M7     | 打磨 + 单文件发布                            | 待开发                  |
 
 ## 📄 文档
