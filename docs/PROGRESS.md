@@ -43,7 +43,8 @@
 7. **PowerShell `$pid` 是只读自动变量**：不能作函数参数名，否则"变量为只读"错误。
 8. **ToggleButton 无 GroupName**（RadioButton 才有）→ 工具互斥手动维护。
 
-### M4 滚动长截图（进行中，2026-08-08 暂停待续）
+### M4 滚动长截图（2026-08-08 已决定跳过；进度存档于 feature/m4-scroll-capture @ 3d45300，未合并）
+> 用户决定：M4 功能整体跳过（不做/暂缓）。以下为存档记录，若将来捡起可从该分支继续。
 **已完成（TDD + 实现，未通过 E2E）**：
 - `ImageAligner` 纯逻辑 TDD（15 单测）：灰度降采样 + 按行 SAD 两级搜索垂直偏移；**采样只忽略右缘滚动条**（左缘行号/缩进是重要对齐特征——曾因忽略左缘 6% 导致 notepad 等左对齐文本页面无法对齐）；`ScrollbarStrip`/噪声/纯色/行相似文本（回归）全覆盖
 - `ScrollInput`（SendInput 滚轮，INPUt union FieldOffset(8) 布局）+ `Win32` 补充
@@ -52,7 +53,7 @@
 - App 装配：托盘「滚动长截图」入口（框选区域→滚动捕获）+ `--longcapture x y w h` 命令行模式（自动复制结果，验证脚本用）
 - `tools/verify-m4.ps1`：notepad 400 行文本 E2E（MoveWindow 到主屏避开被 Edge 遮挡的第二屏 + 剪贴板尺寸校验）
 
-**已知阻塞（E2E 失败，待续）**：「滚动后 BitBlt 截帧陈旧」——滚轮事件 notepad 快速处理（EM_GETFIRSTVISIBLELINE 立即更新 9→18→27），但 app 截帧（BitBlt 与 CopyFromScreen 同刻一致）在滚2 后 1.2s 仍拍到滚2 前内容 → 帧间 offset=0 → 误判到底，长图只拼 1-2 帧。已排除：hBitmap 句柄复用（FromHbitmap 延迟读取，已在句柄删除前拷贝修复）、截帧路径差异（BitBlt==CopyFromScreen）、前台被抢（fg 始终 notepad）、滚轮无效（line 确实在变）。**下一步候选**：滚轮后主动触发目标窗口重绘/前台恢复、稳定延时加大、或对「截帧未变化但滚动已发生」加屏幕重绘等待循环。
+**已知阻塞（E2E 失败，若续做从这开始）**：「滚动后 BitBlt 截帧陈旧」——滚轮事件 notepad 快速处理（EM_GETFIRSTVISIBLELINE 立即更新 9→18→27），但 app 截帧（BitBlt 与 CopyFromScreen 同刻一致）在滚2 后 1.2s 仍拍到滚2 前内容 → 帧间 offset=0 → 误判到底，长图只拼 1-2 帧。已排除：hBitmap 句柄复用（FromHbitmap 延迟读取，已在句柄删除前拷贝修复）、截帧路径差异（BitBlt==CopyFromScreen）、前台被抢（fg 始终 notepad）、滚轮无效（line 确实在变）。**下一步候选**：滚轮后主动触发目标窗口重绘/前台恢复、稳定延时加大、或对「截帧未变化但滚动已发生」加屏幕重绘等待循环。
 
 **踩坑记录（M4 诊断）**：
 1. `Image.FromHbitmap` 返回的 Bitmap 延迟读取 hBitmap——在 `DeleteObject` 前完成像素拷贝（高频截帧时句柄复用会读到旧帧内容）。
@@ -106,8 +107,8 @@
 
 | 里程碑 | 内容 | 验证方式 |
 |--------|------|----------|
-| **M4 滚动长截图**（暂停中，见上） | ImageAligner ✅ / ScrollInput ✅ / Engine+Preview ✅ / **E2E 阻塞:截帧陈旧误判到底** | 合成图对齐单测 ✅ + 浏览器/PDF 实测 ⏳ |
-| M5 贴屏+托盘 | PinWindow（1:1/穿透/透明度）、托盘菜单完善、单实例、开机自启 | 手工 |
+| ~~M4 滚动长截图~~（已跳过，存档） | ImageAligner/ScrollInput/Engine/Preview 实现+单测 ✅，E2E 阻塞截帧陈旧；进度在 feature/m4-scroll-capture @ 3d45300 | — |
+| **M5 贴屏+托盘**（下一个） | PinWindow（1:1/穿透/透明度/缩放）、托盘菜单完善、单实例 Mutex、开机自启 | 手工 |
 | M6 设置+i18n | 快捷键录制、语言/保存目录/滚轮步长设置、三语切换 | 手工 |
 | M7 打磨+发布 | 边界处理、错误提示、单文件 publish 冒烟、README | 冒烟测试 |
 
