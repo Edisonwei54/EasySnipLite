@@ -52,7 +52,20 @@ public static class ScreenCapture
         return 1.0;
     }
 
+    /// <summary>截取指定区域(物理像素)为 GDI+ 位图。长截图引擎用:需要 BGRA 像素做对齐与拼接。</summary>
+    public static Bitmap CaptureRegionBitmap(int x, int y, int width, int height)
+    {
+        using var bmp = CaptureRegionGdi(x, y, width, height);
+        return new Bitmap(bmp); // 拷贝一份,脱离 hBitmap 句柄生命周期
+    }
+
     private static BitmapSource CaptureScreenArea(int x, int y, int width, int height)
+    {
+        using var bmp = CaptureRegionGdi(x, y, width, height);
+        return ToBitmapSource(bmp);
+    }
+
+    private static Bitmap CaptureRegionGdi(int x, int y, int width, int height)
     {
         IntPtr screenDc = IntPtr.Zero;
         IntPtr memDc = IntPtr.Zero;
@@ -70,8 +83,12 @@ public static class ScreenCapture
             {
                 throw new InvalidOperationException("BitBlt 失败");
             }
-            using var bmp = Image.FromHbitmap(hBitmap);
-            return ToBitmapSource(bmp);
+            // 关键:FromHbitmap 的 Bitmap 延迟读取 hBitmap,必须在句柄删除前完成像素拷贝
+            // (否则高频截帧时句柄被复用,读出的可能是上一次的旧帧内容)
+            using (var bmp = Image.FromHbitmap(hBitmap))
+            {
+                return new Bitmap(bmp);
+            }
         }
         finally
         {

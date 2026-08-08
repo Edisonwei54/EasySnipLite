@@ -109,4 +109,34 @@ internal static class Win32
     public static extern bool SetLayeredWindowAttributes(IntPtr hWnd, uint crKey, byte bAlpha, uint dwFlags);
 
     public const uint LWA_ALPHA = 0x00000002;
+
+    // ---- 模拟输入（长截图滚轮） ----
+    public const uint INPUT_MOUSE = 0;
+    public const uint MOUSEEVENTF_WHEEL = 0x0800;
+    public const int WHEEL_DELTA = 120;
+
+    [StructLayout(LayoutKind.Sequential)]
+    public struct MOUSEINPUT
+    {
+        public int dx;
+        public int dy;
+        public uint mouseData;
+        public uint dwFlags;
+        public uint time;
+        public IntPtr dwExtraInfo;
+    }
+
+    // INPUT 是 type(DWORD) + 各输入结构 union;MOUSEINPUT 对齐 8,故 union 从 offset 8 开始
+    [StructLayout(LayoutKind.Explicit)]
+    public struct INPUT
+    {
+        [FieldOffset(0)] public uint type;
+        [FieldOffset(8)] public MOUSEINPUT mi;
+    }
+
+    [DllImport("user32.dll", SetLastError = true)]
+    public static extern uint SendInput(uint cInputs, [In] INPUT[] pInputs, int cbSize);
+
+    [DllImport("user32.dll")]
+    public static extern bool SetCursorPos(int X, int Y);
 }

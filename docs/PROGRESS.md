@@ -43,6 +43,24 @@
 7. **PowerShell `$pid` 是只读自动变量**：不能作函数参数名，否则"变量为只读"错误。
 8. **ToggleButton 无 GroupName**（RadioButton 才有）→ 工具互斥手动维护。
 
+### M4 滚动长截图（2026-08-08 已决定跳过；进度存档于 feature/m4-scroll-capture @ 3d45300，未合并）
+> 用户决定：M4 功能整体跳过（不做/暂缓）。以下为存档记录，若将来捡起可从该分支继续。
+**已完成（TDD + 实现，未通过 E2E）**：
+- `ImageAligner` 纯逻辑 TDD（15 单测）：灰度降采样 + 按行 SAD 两级搜索垂直偏移；**采样只忽略右缘滚动条**（左缘行号/缩进是重要对齐特征——曾因忽略左缘 6% 导致 notepad 等左对齐文本页面无法对齐）；`ScrollbarStrip`/噪声/纯色/行相似文本（回归）全覆盖
+- `ScrollInput`（SendInput 滚轮，INPUt union FieldOffset(8) 布局）+ `Win32` 补充
+- `ScrollCaptureEngine`：调度循环（截帧→对齐→拼接→滚动→稳定）+ 到底检测（连续内容未变）+ 20000px 上限 + 对齐失败重试/接缝标记 + **Checkpoint 续跑**（失败后重试不丢已拼内容）；7 单测（合成帧序列：拼接/到底/重试/上限/取消）
+- `StitchPreviewWindow`：1:1 实时预览 + 进度 + 停止/重试/复制/保存/完成 + 接缝标红 overlay + **自动定位到目标区域外**（右/下/上/左，无空间最小化——避免预览窗口遮挡被捕获窗口）+ ShowActivated=False 不抢焦点
+- App 装配：托盘「滚动长截图」入口（框选区域→滚动捕获）+ `--longcapture x y w h` 命令行模式（自动复制结果，验证脚本用）
+- `tools/verify-m4.ps1`：notepad 400 行文本 E2E（MoveWindow 到主屏避开被 Edge 遮挡的第二屏 + 剪贴板尺寸校验）
+
+**已知阻塞（E2E 失败，若续做从这开始）**：「滚动后 BitBlt 截帧陈旧」——滚轮事件 notepad 快速处理（EM_GETFIRSTVISIBLELINE 立即更新 9→18→27），但 app 截帧（BitBlt 与 CopyFromScreen 同刻一致）在滚2 后 1.2s 仍拍到滚2 前内容 → 帧间 offset=0 → 误判到底，长图只拼 1-2 帧。已排除：hBitmap 句柄复用（FromHbitmap 延迟读取，已在句柄删除前拷贝修复）、截帧路径差异（BitBlt==CopyFromScreen）、前台被抢（fg 始终 notepad）、滚轮无效（line 确实在变）。**下一步候选**：滚轮后主动触发目标窗口重绘/前台恢复、稳定延时加大、或对「截帧未变化但滚动已发生」加屏幕重绘等待循环。
+
+**踩坑记录（M4 诊断）**：
+1. `Image.FromHbitmap` 返回的 Bitmap 延迟读取 hBitmap——在 `DeleteObject` 前完成像素拷贝（高频截帧时句柄复用会读到旧帧内容）。
+2. 低级诊断用 `EM_GETFIRSTVISIBLELINE`（Edit 控件专用）比 `GetScrollInfo` 可靠（后者对 Edit 可能恒 0 误报）。
+3. 第二显示器被全屏 Edge 覆盖时，滚轮事件发给光标下的 Edge 而非目标窗口——验证脚本必须把目标窗口移到确定屏幕。
+4. 验证脚本剪贴板轮询：单屏高度图（未滚动即到底）既不满足尺寸又不该丢弃，需显式 break 判定失败。
+
 ### M0 脚手架（已提交 d056882）
 - slnx 解决方案 + WPF 主项目（net10.0-windows, UseWPF+UseWindowsForms）+ xUnit 测试项目
 - PerMonitorV2 DPI manifest、单文件发布属性、全局类型别名（消解 WPF/WinForms 二义性）
@@ -89,8 +107,8 @@
 
 | 里程碑 | 内容 | 验证方式 |
 |--------|------|----------|
-| **M4 滚动长截图**（下一个） | ImageAligner（TDD）→ 滚动引擎 → 实时预览 | 合成图对齐单测 + 浏览器/PDF 实测 |
-| M5 贴屏+托盘 | PinWindow（1:1/穿透/透明度）、托盘菜单完善、单实例、开机自启 | 手工 |
+| ~~M4 滚动长截图~~（已跳过，存档） | ImageAligner/ScrollInput/Engine/Preview 实现+单测 ✅，E2E 阻塞截帧陈旧；进度在 feature/m4-scroll-capture @ 3d45300 | — |
+| **M5 贴屏+托盘**（下一个） | PinWindow（1:1/穿透/透明度/缩放）、托盘菜单完善、单实例 Mutex、开机自启 | 手工 |
 | M6 设置+i18n | 快捷键录制、语言/保存目录/滚轮步长设置、三语切换 | 手工 |
 | M7 打磨+发布 | 边界处理、错误提示、单文件 publish 冒烟、README | 冒烟测试 |
 
