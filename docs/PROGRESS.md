@@ -62,6 +62,21 @@
 3. 第二显示器被全屏 Edge 覆盖时，滚轮事件发给光标下的 Edge 而非目标窗口——验证脚本必须把目标窗口移到确定屏幕。
 4. 验证脚本剪贴板轮询：单屏高度图（未滚动即到底）既不满足尺寸又不该丢弃，需显式 break 判定失败。
 
+### M5 贴屏+托盘（2026-08-08，本次）
+**交付**：PinWindow 贴屏（1:1 物理像素/DpiScale 置顶、显示在截图原位置、左键拖动、Ctrl+滚轮缩放 50%~300%、右键菜单：鼠标穿透/透明度/100% 缩放/复制/保存/关闭）；编辑器动作条「贴到屏幕」入口（贴屏后关编辑器）；多张贴屏并存（组内点击置顶）；全局热键 **Ctrl+Shift+P** 切换穿透（穿透后鼠标点不到窗口，此为恢复手段）；单实例 Mutex（二次启动提示「已在运行」后退出）；托盘菜单移除「滚动长截图」入口（M4 已跳过，现仅 区域截图/退出）。**单测 121/121 全绿**（新增 PinMathTests 10 个）。**手工 E2E 待用户执行**（清单见 task-7-brief Step 2，含 贴屏位置/拖动/穿透/透明度/缩放/多张置顶/单实例/托盘菜单）。
+
+**新增/修改**：
+- `Pin/PinMath.cs` — 纯逻辑换算（物理像素÷DpiScale→布局坐标；缩放步进 1.1、钳制 50%~300%，10 单测）
+- `Pin/PinWindow.xaml(.cs)` — 贴屏窗口（1:1 置顶/左键拖动/Ctrl+滚轮缩放/右键菜单/WS_EX_TRANSPARENT 穿透/Window.Opacity 透明度/复制/保存）
+- `Editor/EditorWindow.xaml(.cs)` — 动作条「贴到屏幕」按钮 + PinRequested 事件（贴屏后关编辑器）
+- `App.xaml.cs` — OpenPin 装配（截图区域→贴屏位置）、多贴屏列表 _pins、Ctrl+Shift+P 全局穿透热键、单实例 Mutex（持有引用防 GC）
+- `Tray/TrayIconService.cs` — 移除「滚动长截图」菜单项（仅 区域截图/退出）
+- `Core/Hotkeys/ChordDetector.cs` + `KeyboardHookService.cs` — KeyEvent 增加 ShiftDown 状态（Ctrl+Shift+P 判定）
+- `Core/Native/Win32.cs` — SetWindowPos/GetWindowLongPtr/SetWindowLongPtr/VK_SHIFT/WS_EX_TRANSPARENT 声明
+- `tests/PinMathTests.cs` — PinMath 10 单测；`ChordDetectorTests.cs` 适配 ShiftDown
+
+**踩坑记录**：无（subagent 流程全程审查通过，无新增踩坑）。
+
 ### M0 脚手架（已提交 d056882）
 - slnx 解决方案 + WPF 主项目（net10.0-windows, UseWPF+UseWindowsForms）+ xUnit 测试项目
 - PerMonitorV2 DPI manifest、单文件发布属性、全局类型别名（消解 WPF/WinForms 二义性）
@@ -109,8 +124,8 @@
 | 里程碑 | 内容 | 验证方式 |
 |--------|------|----------|
 | ~~M4 滚动长截图~~（已跳过，存档） | ImageAligner/ScrollInput/Engine/Preview 实现+单测 ✅（PR #4 已合并进 main），E2E 阻塞截帧陈旧 | — |
-| **M5 贴屏+托盘**（下一个） | PinWindow（1:1/穿透/透明度/缩放）、托盘菜单完善、单实例 Mutex、开机自启 | 手工 |
-| M6 设置+i18n | 快捷键录制、语言/保存目录/滚轮步长设置、三语切换 | 手工 |
+| ~~M5 贴屏+托盘~~（已完成，手工 E2E 待执行） | PinWindow（1:1/穿透/透明度/缩放）、编辑器「贴到屏幕」入口、单实例 Mutex、托盘移除滚动长截图入口 | 手工 |
+| **M6 设置+i18n**（下一个） | 快捷键录制、语言/保存目录/滚轮步长设置、三语切换 | 手工 |
 | M7 打磨+发布 | 边界处理、错误提示、单文件 publish 冒烟、README | 冒烟测试 |
 
 ## 五、总计划（架构与流程）

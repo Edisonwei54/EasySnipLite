@@ -23,7 +23,7 @@ src/EasySnipLite/          WPF 主程序（net10.0-windows, UseWPF+UseWindowsFor
   Selection/               SelectionSession（会话协调）+ RegionSelectionWindow（全屏遮罩）
   Stitching/               滚动长截图（M4 已实现但功能跳过，进度存档）
   Editor/                  标注编辑器（未实现，M3）
-  Pin/                     贴屏（未实现，M5）
+  Pin/                     贴屏（M5 已实现：贴屏窗口/穿透/缩放）
   Tray/                    TrayIconService（WinForms NotifyIcon）
 tests/EasySnipLite.Tests/  xUnit 纯逻辑单测
 tools/                     PowerShell 端到端验证脚本（纯 ASCII，勿加中文）
@@ -46,5 +46,6 @@ docs/                      PROGRESS.md（里程碑进度）、superpowers/specs/
 ## 现状
 
 - M0 脚手架 ✅ / M1 截图主干 ✅ / M2 选区完善 ✅ / M3 标注编辑器 ✅（均 E2E 已验证）
-- M4 滚动长截图：实现 + 单测已存档（PR #4 合并进 main），因 E2E 阻塞已决定**跳过**；托盘「滚动长截图」入口为半成品
-- M5 贴屏+托盘（PinWindow/单实例/开机自启）→ 下一个里程碑，见 docs/PROGRESS.md
+- M4 滚动长截图：实现 + 单测已存档（PR #4 合并进 main），因 E2E 阻塞已决定**跳过**；托盘「滚动长截图」入口已由 M5 移除
+- M5 贴屏+托盘 ✅（单实例 Mutex/贴屏窗口/编辑器「贴到屏幕」入口/Ctrl+Shift+P 穿透热键）
+- M6 设置+i18n → 下一个里程碑，见 docs/PROGRESS.md
