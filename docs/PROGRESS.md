@@ -16,6 +16,33 @@
 
 ## 三、已完成
 
+### M3 标注编辑器（本次）
+**交付**：全矢量对象模型（8 种标注）+ 撤销/重做 + 复制/保存/完成。Enter/双击确认 → 打开编辑器（底图 + 矢量对象 + 选中装饰）；工具条：选择 + 8 工具 + 8 色 + 线宽 + 撤销/重做/删除；数字键 1-9 切工具；Delete 删除、Ctrl+Z/Y 撤销重做、Ctrl+C/S 复制保存、Enter 完成（复制并关闭）、Esc 关闭；文字内联输入框、表情分类面板（Segoe UI Emoji 5 类）。**端到端验证通过**（tools/verify-m3.ps1：Enter 开编辑器、D2 切矩形 → 画布拖拽 → Ctrl+C 有矩形、Ctrl+Z 撤销后无矩形、Enter 完成复制 300x200）；M2 回归（verify-m2 场景 F 已更新）通过；**单测 90/90 全绿**（新增 53 个）。
+
+**新增/修改**：
+- `Editor/Models/AnnotationObject.cs` — 抽象基类（Bounds/Color/StrokeWidth/IsSelected/Clone/Render/Offset）+ Rectangle/Ellipse/Arrow（头部三角纳入 Bounds）/Freehand/Highlighter
+- `Editor/Models/MosaicObject.cs` — 块化渲染（块内像素取块左上，底图不破坏、可撤销）；`TextObject.cs` — Text/Emoji（TextBlock+RenderTargetBitmap 彩色 emoji 缓存）
+- `Editor/UndoRedo/UndoStack.cs` — 命令式撤销栈（AddObject/DeleteObject/TransformCommand + Push/Undo/Redo + 容量上限，12 单测）
+- `Editor/Tools/` — IAnnotationTool 状态机接口 + DragToolBase（规范化+最小尺寸）；Rectangle/Ellipse/Arrow/Freehand(采样去抖)/Highlighter/Mosaic 拖拽工具；Text/Emoji 点击工具（Clicked 事件 + TextMetrics 度量）；SelectionTool + HitTester（重叠取最上，5 单测）
+- `Editor/EditorViewModel.cs` — 工具协调（选择移动入 Transform 命令、工具产出入 Add 命令）、选中管理、Compose 导出
+- `Editor/AnnotationCanvas.cs` — 渲染层（底图→对象→选中虚线框）+ EmojiCatalog
+- `Editor/EditorWindow.xaml(.cs)` — 工具条/动作条/画布/表情 Popup/快捷键；`TextInputDialog.xaml(.cs)` — 文字输入
+- `Core/Imaging/ImageFile.cs` — 保存共享（SavePng/SaveFileDialog/默认目录），App 与编辑器共用
+- `App.xaml.cs` — Enter 确认 → 先关遮罩 → BeginInvoke 打开编辑器
+- `GlobalUsings.cs` — 新增 Pen/FontFamily/FlowDirection/Brushes/MouseEventArgs/Button/MessageBox 别名
+- `tests/` — UndoStackTests(12)/AnnotationObjectTests(19)/AnnotationToolTests(17)/SelectionToolTests(5)
+- `tools/verify-m3.ps1` — M3 E2E 自动化；`tools/verify-m2.ps1` 场景 F 适配 M3（Enter 开编辑器）
+
+**踩坑记录（重要）**：
+1. **target-typed new 不查找最派生类**：`Clone()` 返回类型是抽象 `AnnotationObject` 时 `new(...)` 直接尝试构造抽象类 → CS0144。必须显式 `new RectangleObject(...)`。
+2. **托盘应用（无 MainWindow）设置 Owner 崩溃**：遮罩关闭后 `Application.Current.MainWindow` 指向已关闭窗口，`Owner = MainWindow` 抛"Owner 设置为它本身"→ 模态编辑器不设 Owner。
+3. **按键事件栈上关遮罩 + ShowDialog 崩溃**：Enter 确认回调里先 Close 全屏遮罩再 ShowDialog 导致 app 崩溃 → 用 `Dispatcher.BeginInvoke` 延迟打开。
+4. **全屏 Topmost 遮罩挡住编辑器**：先开编辑器再关遮罩时编辑器被遮罩盖住，画布点击全部被遮罩吃掉（表现为"绘制无反应"）→ 必须先 FinishSession 再开编辑器。
+5. **ScrollViewer 内容默认居中**：ScrollContentPresenter 默认 Horizontal/VerticalContentAlignment=Center → 画布被放到视口中央，任何"画布在 (0,0)"的坐标假设全部错位 → 显式 `HorizontalAlignment="Left" VerticalAlignment="Top"`。
+6. **验证脚本残留进程**：失败的 verify 运行可能残留 app 进程（钩子+窗口仍在），干扰后续运行（截图内容错误、窗口计数异常）→ 运行前先 `tasklist | grep EasySnipLite`。
+7. **PowerShell `$pid` 是只读自动变量**：不能作函数参数名，否则"变量为只读"错误。
+8. **ToggleButton 无 GroupName**（RadioButton 才有）→ 工具互斥手动维护。
+
 ### M0 脚手架（已提交 d056882）
 - slnx 解决方案 + WPF 主项目（net10.0-windows, UseWPF+UseWindowsForms）+ xUnit 测试项目
 - PerMonitorV2 DPI manifest、单文件发布属性、全局类型别名（消解 WPF/WinForms 二义性）
@@ -62,9 +89,7 @@
 
 | 里程碑 | 内容 | 验证方式 |
 |--------|------|----------|
-| **M3 标注编辑器**（下一个） | 矢量对象模型 + 8 工具 + 撤销重做 + 复制/保存/完成 | UndoStack 单测 + 手工 |
-| M4 滚动长截图 | ImageAligner（TDD）→ 滚动引擎 → 实时预览 | 合成图对齐单测 + 浏览器/PDF 实测 |
-| M4 滚动长截图 | ImageAligner（TDD）→ 滚动引擎 → 实时预览 | 合成图对齐单测 + 浏览器/PDF 实测 |
+| **M4 滚动长截图**（下一个） | ImageAligner（TDD）→ 滚动引擎 → 实时预览 | 合成图对齐单测 + 浏览器/PDF 实测 |
 | M5 贴屏+托盘 | PinWindow（1:1/穿透/透明度）、托盘菜单完善、单实例、开机自启 | 手工 |
 | M6 设置+i18n | 快捷键录制、语言/保存目录/滚轮步长设置、三语切换 | 手工 |
 | M7 打磨+发布 | 边界处理、错误提示、单文件 publish 冒烟、README | 冒烟测试 |
