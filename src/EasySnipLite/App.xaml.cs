@@ -1,3 +1,4 @@
+using System.Threading;
 using System.Windows;
 using System.Windows.Media.Imaging;
 using EasySnipLite.Core.Hotkeys;
@@ -15,16 +16,27 @@ public partial class App : Application
     private readonly ChordDetector _chord = new(TimeSpan.FromMilliseconds(300));
     private SelectionSession? _session;
     private TrayIconService? _tray;
+    private Mutex? _mutex; // 单实例，持有引用防 GC
     private readonly List<PinWindow> _pins = new();
 
     protected override void OnStartup(StartupEventArgs e)
     {
         base.OnStartup(e);
+
+        // 单实例：二次启动提示后退出（M5）
+        _mutex = new Mutex(true, "EasySnipLite_SingleInstance", out bool createdNew);
+        if (!createdNew)
+        {
+            MessageBox.Show("EasySnipLite 已在运行。", "EasySnipLite",
+                MessageBoxButton.OK, MessageBoxImage.Information);
+            Shutdown();
+            return;
+        }
+
         ShutdownMode = ShutdownMode.OnExplicitShutdown;
 
         _tray = new TrayIconService();
         _tray.CaptureRequested += StartCapture;
-        _tray.LongCaptureRequested += StartLongCapture;
         _tray.ExitRequested += Shutdown;
 
         _hook = new KeyboardHookService();
@@ -117,22 +129,6 @@ public partial class App : Application
         pin.Show();
     }
 
-    /// <summary>M4 滚动长截图:先框选目标区域,完成后对区域自动滚动捕获。</summary>
-    private void StartLongCapture()
-    {
-        if (_session is not null) return; // 已在截图流程中
-        var session = new SelectionSession();
-        session.Completed += _ =>
-        {
-            var region = session.SelectedRegion;
-            FinishSession(); // 先关遮罩(否则挡住预览窗口)
-            Dispatcher.BeginInvoke(() => OpenStitch(region));
-        };
-        session.Cancelled += FinishSession;
-        _session = session;
-        session.Start();
-    }
-
     /// <summary>对指定屏幕区域(物理像素)打开滚动捕获预览窗口。</summary>
     private static void OpenStitch(Int32Rect? region, bool autoCopy = false)
     {
@@ -153,6 +149,7 @@ public partial class App : Application
 
     protected override void OnExit(ExitEventArgs e)
     {
+        _mutex?.Dispose();
         _hook?.Dispose();
         _tray?.Dispose();
         base.OnExit(e);
