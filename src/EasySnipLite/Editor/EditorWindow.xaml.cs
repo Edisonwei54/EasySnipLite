@@ -22,7 +22,7 @@ public sealed class EmojiPalette
 
 /// <summary>
 /// 标注编辑器窗口：画布（底图+矢量对象+选中装饰）+ 工具条（9 工具/颜色/粗细/撤销/重做/删除）
-/// + 动作条（复制/保存/完成）。快捷键：Delete 删除、Ctrl+Z/Y 撤销重做、Ctrl+C/S 复制保存、
+/// + 动作条（复制/保存/贴到屏幕/完成）。快捷键：Delete 删除、Ctrl+Z/Y 撤销重做、Ctrl+C/S 复制保存、
 /// Enter 完成（复制并关闭）、Esc 关闭。
 /// </summary>
 public partial class EditorWindow : Window
