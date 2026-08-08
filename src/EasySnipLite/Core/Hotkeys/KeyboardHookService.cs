@@ -50,11 +50,13 @@ public sealed class KeyboardHookService : IDisposable
             {
                 var data = Marshal.PtrToStructure<Win32.KBDLLHOOKSTRUCT>(lParam);
                 bool ctrlDown = (Win32.GetAsyncKeyState(Win32.VK_CONTROL) & 0x8000) != 0;
+                bool shiftDown = (Win32.GetAsyncKeyState(Win32.VK_SHIFT) & 0x8000) != 0;
                 bool isUp = msg is Win32.WM_KEYUP or Win32.WM_SYSKEYUP;
                 var evt = new KeyEvent(
                     isUp ? KeyEventType.KeyUp : KeyEventType.KeyDown,
                     (int)data.vkCode,
                     ctrlDown,
+                    shiftDown,
                     DateTime.UtcNow);
                 KeyReceived?.Invoke(evt);
             }

@@ -139,4 +139,15 @@ internal static class Win32
 
     [DllImport("user32.dll")]
     public static extern bool SetCursorPos(int X, int Y);
+
+    // ---- 贴屏热键与窗口刷新（M5 用） ----
+    public const int VK_SHIFT = 0x10;
+
+    public const uint SWP_NOSIZE = 0x0001;
+    public const uint SWP_NOMOVE = 0x0002;
+    public const uint SWP_NOZORDER = 0x0004;
+    public const uint SWP_FRAMECHANGED = 0x0020;
+
+    [DllImport("user32.dll")]
+    public static extern bool SetWindowPos(IntPtr hWnd, IntPtr hWndInsertAfter, int X, int Y, int cx, int cy, uint uFlags);
 }

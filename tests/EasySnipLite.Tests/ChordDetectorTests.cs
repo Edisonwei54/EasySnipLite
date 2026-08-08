@@ -9,13 +9,13 @@ public class ChordDetectorTests
     private static readonly TimeSpan Window = TimeSpan.FromMilliseconds(300);
 
     private static KeyEvent SpaceUp(bool ctrl, DateTime t) =>
-        new(KeyEventType.KeyUp, VkSpace, ctrl, t);
+        new(KeyEventType.KeyUp, VkSpace, ctrl, false, t);
 
     private static KeyEvent SpaceDown(DateTime t) =>
-        new(KeyEventType.KeyDown, VkSpace, true, t);
+        new(KeyEventType.KeyDown, VkSpace, true, false, t);
 
     private static KeyEvent OtherUp(DateTime t) =>
-        new(KeyEventType.KeyUp, VkShift, true, t);
+        new(KeyEventType.KeyUp, VkShift, true, false, t);
 
     [Fact]
     public void CtrlHeld_DoubleSpaceWithinWindow_Fires()
