@@ -21,7 +21,24 @@
 - PerMonitorV2 DPI manifest、单文件发布属性、全局类型别名（消解 WPF/WinForms 二义性）
 - 空窗口可启动，构建 0 错误 0 警告
 
-### M1 截图主干（本次）
+### M2 选区完善（本次）
+**交付**：8 手柄缩放 / 内部移动 / 方向键 1px 微调(Shift=10px) / 角点放大镜(9x9 像素 + 坐标 + RGB) / 尺寸标签 / Esc 两级取消 / Enter 复制 / Ctrl+S 保存 PNG。**端到端验证通过**（tools/verify-m2.ps1：手柄缩放后保存 340x230、微调/移动与基线像素差异、Esc 两级语义、Enter 剪贴板 300x200）。
+
+**新增/修改**：
+- `Selection/SelectionMath.cs` — 纯逻辑：命中测试(角>边>体)、手柄缩放(对边固定+最小尺寸)、移动钳制、遮罩四块计算、放大镜定位（27 个单测全绿）
+- `Selection/SelectionSession.cs` — 状态机 Idle→Selecting→Adjusting；手柄/移动/微调/放大镜广播
+- `Selection/RegionSelectionWindow.xaml(.cs)` — 8 手柄渲染 + 光标映射 + 放大镜控件
+- `App.xaml.cs` — Ctrl+S 保存（SaveFileDialog → PNG）
+- `tools/verify-m2.ps1` — M2 E2E 自动化（保存对话框用剪贴板粘贴路径自动化）
+
+**踩坑记录（重要）**：
+1. **`Rect.Empty` 的 Bottom 是 -Inf**（Y=0, Height=-Inf）→ `Math.Max(0, win.Bottom - sel.Bottom)` 得 +Inf → WPF `set_Height(+Inf)` 抛 ArgumentException 崩溃。M1 从未走 `UpdateSelection(null)` 分支（无 Esc/点击取消场景）所以没暴露；M2 的 Esc 清空选区触发。已提取 `SelectionMath.MaskRectangles` 纯函数 + `PositionMask` NaN/Inf 防御（5 个单测）。
+2. **验证脚本枚举格式自伤**：verify-m2 的 WinEnum 输出加了类名字段但匹配模式没同步，overlay 永远匹配不到（误报"overlay not shown"）。验证脚本与枚举模式必须同步。
+3. **SaveFileDialog 自动化**：SendKeys 输入路径会插入到预填文件名中 → 先 Ctrl+A 全选再粘贴（Clipboard + keybd_event 比 SendKeys 可靠）。
+4. **锁屏桌面拦截模拟键盘输入**：前台为 LockApp 时 keybd_event/SendInput 事件丢失或部分到达（低级钩子收不到），验证必须在解锁桌面运行。诊断方法：独立 WH_KEYBOARD_LL 钩子脚本 + 前台窗口检查（GetForegroundWindow）。
+5. **GetAsyncKeyState 在低级钩子回调中反映合成输入状态正常**（本次排查确认无坑）；合成输入丢失是锁屏环境所致。
+
+### M1 截图主干（已提交 a628cf4）
 **交付**：全局热键 → 冻结屏幕 → 框选 → Enter 确认 → 复制到剪贴板，**端到端验证通过**（tools/verify-m1.ps1 自动化验证：热键唤起、遮罩窗口可见、拖拽 300x200、Enter 后窗口关闭、剪贴板读回 300x200 PNG）。
 
 **新增文件**：
@@ -45,8 +62,8 @@
 
 | 里程碑 | 内容 | 验证方式 |
 |--------|------|----------|
-| **M2 选区完善**（下一个） | 8 手柄缩放、内部拖动移动、方向键 1px 微调、角点放大镜、Esc/Enter、保存 PNG | 自动化拖拽+键控 + 手工 |
-| M3 标注编辑器 | 矢量对象模型 + 8 工具 + 撤销重做 + 复制/保存/完成 | UndoStack 单测 + 手工 |
+| **M3 标注编辑器**（下一个） | 矢量对象模型 + 8 工具 + 撤销重做 + 复制/保存/完成 | UndoStack 单测 + 手工 |
+| M4 滚动长截图 | ImageAligner（TDD）→ 滚动引擎 → 实时预览 | 合成图对齐单测 + 浏览器/PDF 实测 |
 | M4 滚动长截图 | ImageAligner（TDD）→ 滚动引擎 → 实时预览 | 合成图对齐单测 + 浏览器/PDF 实测 |
 | M5 贴屏+托盘 | PinWindow（1:1/穿透/透明度）、托盘菜单完善、单实例、开机自启 | 手工 |
 | M6 设置+i18n | 快捷键录制、语言/保存目录/滚轮步长设置、三语切换 | 手工 |

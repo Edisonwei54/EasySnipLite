@@ -10,6 +10,16 @@
         Focusable="True"
         WindowStartupLocation="Manual"
         ResizeMode="NoResize">
+    <Window.Resources>
+        <!-- 调整手柄样式:蓝色方块白边 -->
+        <Style x:Key="HandleStyle" TargetType="Rectangle">
+            <Setter Property="Width" Value="9" />
+            <Setter Property="Height" Value="9" />
+            <Setter Property="Fill" Value="#FF2D9CFF" />
+            <Setter Property="Stroke" Value="White" />
+            <Setter Property="StrokeThickness" Value="1" />
+        </Style>
+    </Window.Resources>
     <Canvas x:Name="RootCanvas">
         <!-- 冻结的画面（物理像素 1:1 显示） -->
         <Image x:Name="FrozenImage" Stretch="None" />
@@ -25,6 +35,15 @@
                    StrokeDashArray="2 2"
                    Fill="#12FFFFFF"
                    Visibility="Collapsed" />
+        <!-- 8 个调整手柄(调整态可见) -->
+        <Rectangle x:Name="HandleNW" Style="{StaticResource HandleStyle}" Visibility="Collapsed" />
+        <Rectangle x:Name="HandleNE" Style="{StaticResource HandleStyle}" Visibility="Collapsed" />
+        <Rectangle x:Name="HandleSW" Style="{StaticResource HandleStyle}" Visibility="Collapsed" />
+        <Rectangle x:Name="HandleSE" Style="{StaticResource HandleStyle}" Visibility="Collapsed" />
+        <Rectangle x:Name="HandleTop" Style="{StaticResource HandleStyle}" Visibility="Collapsed" />
+        <Rectangle x:Name="HandleBottom" Style="{StaticResource HandleStyle}" Visibility="Collapsed" />
+        <Rectangle x:Name="HandleLeft" Style="{StaticResource HandleStyle}" Visibility="Collapsed" />
+        <Rectangle x:Name="HandleRight" Style="{StaticResource HandleStyle}" Visibility="Collapsed" />
         <!-- 尺寸标签 -->
         <Border x:Name="SizeLabel"
                 Visibility="Collapsed"
@@ -35,6 +54,26 @@
                        Foreground="White"
                        FontSize="12"
                        FontFamily="Segoe UI" />
+        </Border>
+        <!-- 角点放大镜(拖动中显示:9x9 像素最近邻放大 + 坐标 + 颜色) -->
+        <Border x:Name="Magnifier"
+                Visibility="Collapsed"
+                Background="#F0FFFFFF"
+                BorderBrush="#FF2D9CFF"
+                BorderThickness="1"
+                CornerRadius="3"
+                Padding="2">
+            <StackPanel>
+                <Image x:Name="MagImage"
+                       Width="54" Height="54"
+                       Stretch="Fill"
+                       RenderOptions.BitmapScalingMode="NearestNeighbor" />
+                <TextBlock x:Name="MagInfo"
+                           Foreground="Black"
+                           FontSize="11"
+                           FontFamily="Consolas"
+                           HorizontalAlignment="Center" />
+            </StackPanel>
         </Border>
     </Canvas>
 </Window>
