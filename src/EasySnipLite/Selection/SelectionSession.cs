@@ -38,6 +38,9 @@ public sealed class SelectionSession : IDisposable
 
     public int FrameCount => _frames.Count;
 
+    /// <summary>当前选区(虚拟屏幕物理像素);长截图等流程需用屏幕坐标持续捕获。</summary>
+    public Int32Rect? SelectedRegion => _selection;
+
     public SelectionSession()
     {
         _frames = ScreenCapture.CaptureAll();

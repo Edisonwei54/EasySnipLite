@@ -12,6 +12,7 @@ public sealed class TrayIconService : IDisposable
     private readonly NotifyIcon _icon;
 
     public event Action? CaptureRequested;
+    public event Action? LongCaptureRequested;
     public event Action? ExitRequested;
 
     public TrayIconService()
@@ -24,6 +25,7 @@ public sealed class TrayIconService : IDisposable
         };
         var menu = new ContextMenuStrip();
         menu.Items.Add("区域截图 (Ctrl+双击空格)", null, (_, _) => CaptureRequested?.Invoke());
+        menu.Items.Add("滚动长截图", null, (_, _) => LongCaptureRequested?.Invoke());
         menu.Items.Add(new ToolStripSeparator());
         menu.Items.Add("退出", null, (_, _) => ExitRequested?.Invoke());
         _icon.ContextMenuStrip = menu;
