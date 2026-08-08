@@ -45,7 +45,7 @@
 
 ### M4 滚动长截图（2026-08-08 已决定跳过；实现已合并进 main，分支保留）
 > 用户决定：M4 功能整体跳过（不做/暂缓）。实现 + 单测经 **PR #4 合并进 main（9995a59）**存档；
-> 分支 `feature/m4-scroll-capture` 保留（远端 + 本地，HEAD b2bb023）。以下为存档记录，若将来捡起可直接继续。
+> 分支 `feature/m4-scroll-capture` 远端保留（本地已按规则清除，HEAD b2bb023）。以下为存档记录，若将来捡起可直接继续。
 **已完成（TDD + 实现，未通过 E2E）**：
 - `ImageAligner` 纯逻辑 TDD（15 单测）：灰度降采样 + 按行 SAD 两级搜索垂直偏移；**采样只忽略右缘滚动条**（左缘行号/缩进是重要对齐特征——曾因忽略左缘 6% 导致 notepad 等左对齐文本页面无法对齐）；`ScrollbarStrip`/噪声/纯色/行相似文本（回归）全覆盖
 - `ScrollInput`（SendInput 滚轮，INPUt union FieldOffset(8) 布局）+ `Win32` 补充
@@ -116,5 +116,5 @@
 ## 五、总计划（架构与流程）
 
 - **架构**：App（装配/托盘/i18n/设置）· Core（Win32/热键/捕获/剪贴板）· Selection（遮罩框选）· Editor（标注）· Stitching（长截图）· Pin（贴屏）· Tests（xUnit 纯逻辑单测）。零第三方运行时依赖。
-- **流程**：TDD 先行纯逻辑（已用于 ChordDetector）；每里程碑自动化/手工验证通过后 git commit；最终单文件发布 + 双屏混合 DPI 回归。
+- **流程**：TDD 先行纯逻辑（已用于 ChordDetector）；每里程碑自动化/手工验证通过后 git commit；PR 由用户手动合并，合并后清除本地分支（远程分支保留）；最终单文件发布 + 双屏混合 DPI 回归。
 - 完整设计：`docs/superpowers/specs/2026-08-07-easysniplite-design.md`；实施计划：`C:\Users\situweihao\.claude\plans\windows-delegated-kahan.md`
