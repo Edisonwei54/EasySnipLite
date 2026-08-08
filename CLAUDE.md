@@ -21,7 +21,7 @@ src/EasySnipLite/          WPF 主程序（net10.0-windows, UseWPF+UseWindowsFor
   Core/Imaging/            ScreenCapture（BitBlt 冻结，物理像素）
   Core/Clipboard/          ClipboardEx（DIB+PNG 双格式，命名空间 ClipboardServices）
   Selection/               SelectionSession（会话协调）+ RegionSelectionWindow（全屏遮罩）
-  Stitching/               滚动长截图（未实现，M4）
+  Stitching/               滚动长截图（M4 已实现但功能跳过，进度存档）
   Editor/                  标注编辑器（未实现，M3）
   Pin/                     贴屏（未实现，M5）
   Tray/                    TrayIconService（WinForms NotifyIcon）
@@ -40,6 +40,7 @@ docs/                      PROGRESS.md（里程碑进度）、superpowers/specs/
 6. **新增类命名空间**：避开与常用类型同名的命名空间（如 `Core.Clipboard` 与 WPF `Clipboard` 类冲突，已改名 `ClipboardServices`）。
 7. **验证纪律**：每个里程碑结束运行对应验证脚本 + `dotnet test` 全绿后才提交；改完代码必须重新 build（构建失败时跑的是旧 exe，验证结果无效）。
 8. **进度跟踪**：里程碑进度与踩坑记录见 `docs/PROGRESS.md`，动手前先看「接下来要做什么」。
+9. **分支合并与删除（硬性规则）**：**分支合并动作完全不允许执行**（含 `gh pr merge`/`git merge`/squash 等任何形式），创建 PR 后停下由用户手动合并；**远程分支完全不允许删除**（含 `gh pr merge --delete-branch`、`git push origin --delete`），PR 合并后远程分支保留，清理先问用户。
 
 ## 现状
 
