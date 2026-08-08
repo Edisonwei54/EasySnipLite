@@ -1,8 +1,11 @@
+using System.Threading;
 using System.Windows;
 using System.Windows.Media.Imaging;
 using EasySnipLite.Core.Hotkeys;
 using EasySnipLite.Core.Imaging;
+using EasySnipLite.Core.Native;
 using EasySnipLite.Selection;
+using EasySnipLite.Pin;
 using EasySnipLite.Stitching;
 using EasySnipLite.Tray;
 
@@ -14,15 +17,28 @@ public partial class App : Application
     private readonly ChordDetector _chord = new(TimeSpan.FromMilliseconds(300));
     private SelectionSession? _session;
     private TrayIconService? _tray;
+    private Mutex? _mutex; // 单实例，持有引用防 GC
+    private readonly List<PinWindow> _pins = new();
+    private bool _passthroughKeyPressed; // 防 Ctrl+Shift+P 按住 auto-repeat 反复切换
 
     protected override void OnStartup(StartupEventArgs e)
     {
         base.OnStartup(e);
+
+        // 单实例：二次启动提示后退出（M5）
+        _mutex = new Mutex(true, "EasySnipLite_SingleInstance", out bool createdNew);
+        if (!createdNew)
+        {
+            MessageBox.Show("EasySnipLite 已在运行。", "EasySnipLite",
+                MessageBoxButton.OK, MessageBoxImage.Information);
+            Shutdown();
+            return;
+        }
+
         ShutdownMode = ShutdownMode.OnExplicitShutdown;
 
         _tray = new TrayIconService();
         _tray.CaptureRequested += StartCapture;
-        _tray.LongCaptureRequested += StartLongCapture;
         _tray.ExitRequested += Shutdown;
 
         _hook = new KeyboardHookService();
@@ -46,7 +62,29 @@ public partial class App : Application
         if (_chord.HandleKey(evt))
         {
             Dispatcher.BeginInvoke(StartCapture);
+            return;
         }
+        // 贴屏穿透全局热键：Ctrl+Shift+P（穿透后鼠标点不到窗口，此为恢复手段）
+        if (evt.VirtualKey == Win32.VK_P && evt.CtrlDown && evt.ShiftDown)
+        {
+            if (evt.Type == KeyEventType.KeyUp)
+            {
+                _passthroughKeyPressed = false;
+            }
+            else if (evt.Type == KeyEventType.KeyDown && !_passthroughKeyPressed)
+            {
+                _passthroughKeyPressed = true;
+                Dispatcher.BeginInvoke(TogglePinPassthrough);
+            }
+        }
+    }
+
+    /// <summary>切换全部贴屏窗口穿透（统一开关）。</summary>
+    private void TogglePinPassthrough()
+    {
+        if (_pins.Count == 0) return;
+        var next = !_pins[0].IsPassthrough;
+        foreach (var pin in _pins) pin.IsPassthrough = next;
     }
 
     private void StartCapture()
@@ -55,9 +93,10 @@ public partial class App : Application
         var session = new SelectionSession();
         session.Completed += result =>
         {
+            var region = session.SelectedRegion; // 先取区域(物理像素)再释放会话
             FinishSession(); // 先关闭全屏 Topmost 遮罩，否则会挡住编辑器
             // 延迟到事件处理之外再打开编辑器：在按键事件栈上关闭遮罩窗口后开模态循环会崩溃
-            Dispatcher.BeginInvoke(() => OpenEditor(result));
+            Dispatcher.BeginInvoke(() => OpenEditor(result, region));
         };
         session.SaveRequested += result =>
         {
@@ -70,26 +109,33 @@ public partial class App : Application
     }
 
     /// <summary>Enter/双击确认 → 打开标注编辑器（M3）。托盘应用无主窗口，模态独立显示。</summary>
-    private static void OpenEditor(BitmapSource image)
+    private void OpenEditor(BitmapSource image, Int32Rect? region)
     {
         var editor = new Editor.EditorWindow(image);
+        editor.PinRequested += pinned => OpenPin(pinned, region);
         editor.ShowDialog();
     }
 
-    /// <summary>M4 滚动长截图:先框选目标区域,完成后对区域自动滚动捕获。</summary>
-    private void StartLongCapture()
+    /// <summary>打开贴屏窗口：位置=截图原位置(物理像素)，1:1 尺寸；region 缺失时屏幕居中兜底。</summary>
+    private void OpenPin(BitmapSource image, Int32Rect? region)
     {
-        if (_session is not null) return; // 已在截图流程中
-        var session = new SelectionSession();
-        session.Completed += _ =>
+        int x, y;
+        if (region is { } r)
         {
-            var region = session.SelectedRegion;
-            FinishSession(); // 先关遮罩(否则挡住预览窗口)
-            Dispatcher.BeginInvoke(() => OpenStitch(region));
-        };
-        session.Cancelled += FinishSession;
-        _session = session;
-        session.Start();
+            x = r.X;
+            y = r.Y;
+        }
+        else
+        {
+            var work = SystemParameters.WorkArea;
+            x = (int)Math.Round(work.Left + (work.Width - image.PixelWidth) / 2.0);
+            y = (int)Math.Round(work.Top + (work.Height - image.PixelHeight) / 2.0);
+        }
+
+        var pin = new PinWindow(image, x, y);
+        pin.Closed += (_, _) => _pins.Remove(pin);
+        _pins.Add(pin);
+        pin.Show();
     }
 
     /// <summary>对指定屏幕区域(物理像素)打开滚动捕获预览窗口。</summary>
@@ -112,6 +158,7 @@ public partial class App : Application
 
     protected override void OnExit(ExitEventArgs e)
     {
+        _mutex?.Dispose();
         _hook?.Dispose();
         _tray?.Dispose();
         base.OnExit(e);

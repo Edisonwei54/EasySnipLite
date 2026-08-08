@@ -6,7 +6,7 @@ public enum KeyEventType
     KeyUp,
 }
 
-public sealed record KeyEvent(KeyEventType Type, int VirtualKey, bool CtrlDown, DateTime Timestamp);
+public sealed record KeyEvent(KeyEventType Type, int VirtualKey, bool CtrlDown, bool ShiftDown, DateTime Timestamp);
 
 /// <summary>
 /// 判定「修饰键按住 + 目标键双击」的时序逻辑（纯逻辑，可单测）。
