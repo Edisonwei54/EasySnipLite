@@ -55,6 +55,7 @@
 
                 <Button Content="复制" Click="Copy_Click" Margin="0,0,3,0" ToolTip="Ctrl+C"/>
                 <Button Content="保存" Click="Save_Click" Margin="0,0,3,0" ToolTip="Ctrl+S"/>
+                <Button Content="贴到屏幕" Click="Pin_Click" Margin="0,0,3,0" ToolTip="贴到屏幕"/>
                 <Button Content="完成" Click="Complete_Click" Margin="0,0,3,0" FontWeight="Bold" ToolTip="复制并关闭 (Enter)"/>
             </WrapPanel>
         </Border>

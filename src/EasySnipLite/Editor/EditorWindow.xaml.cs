@@ -31,6 +31,9 @@ public partial class EditorWindow : Window
     private readonly ToggleButton[] _toolButtons;
     private Point _emojiPoint;
 
+    /// <summary>「贴到屏幕」：携带组合位图，由 App 打开贴屏窗口（本窗口随即关闭）。</summary>
+    public event Action<BitmapSource>? PinRequested;
+
     public EditorWindow(BitmapSource image)
     {
         InitializeComponent();
@@ -136,6 +139,12 @@ public partial class EditorWindow : Window
     }
 
     private void Complete_Click(object sender, RoutedEventArgs e) => Complete();
+
+    private void Pin_Click(object sender, RoutedEventArgs e)
+    {
+        PinRequested?.Invoke(_vm.Compose());
+        Close();
+    }
 
     // ---- 输入面板 ----
 
