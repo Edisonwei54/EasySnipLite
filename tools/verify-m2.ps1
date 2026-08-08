@@ -26,6 +26,8 @@ public static class WinEnum {
     [DllImport("user32.dll", CharSet = CharSet.Unicode)] private static extern int GetClassName(IntPtr hWnd, StringBuilder t, int n);
     [DllImport("user32.dll")] private static extern bool IsWindowVisible(IntPtr hWnd);
     [DllImport("user32.dll")] private static extern uint GetWindowThreadProcessId(IntPtr hWnd, out uint pid);
+    [DllImport("user32.dll")] private static extern bool GetWindowRect(IntPtr hWnd, out RECT r);
+    [StructLayout(LayoutKind.Sequential)] public struct RECT { public int Left, Top, Right, Bottom; }
     public static string[] List(int targetPid) {
         var res = new List<string>();
         EnumWindows((h, l) => {
@@ -33,7 +35,10 @@ public static class WinEnum {
             if (pid == targetPid) {
                 var sb = new StringBuilder(256); GetWindowText(h, sb, 256);
                 var cls = new StringBuilder(64); GetClassName(h, cls, 64);
-                res.Add(String.Format("{0}|{1}|{2}|{3}", h.ToInt64(), IsWindowVisible(h) ? 1 : 0, cls.ToString(), sb.ToString()));
+                RECT r; GetWindowRect(h, out r);
+                res.Add(String.Format("{0}|{1}|{2}|{3}|{4}|{5}|{6}|{7}",
+                    h.ToInt64(), IsWindowVisible(h) ? 1 : 0, cls.ToString(), sb.ToString(),
+                    r.Left, r.Top, r.Right - r.Left, r.Bottom - r.Top));
             }
             return true;
         }, IntPtr.Zero);
@@ -73,7 +78,7 @@ function Invoke-Capture {
 
 function Get-OverlayCount {
     $wins = [WinEnum]::List($proc.Id)
-    return @($wins | Where-Object { $_ -match '^[0-9]+\|1\|[^|]*\|EasySnipLite$' }).Count
+    return @($wins | Where-Object { $_ -match '^[0-9]+\|1\|[^|]*\|EasySnipLite\|' }).Count
 }
 
 function Drag-Region($x0, $y0, $dx, $dy) {
@@ -231,27 +236,24 @@ Start-Sleep -Milliseconds 500
 if ((Get-OverlayCount) -gt 0) { Log 'FAIL: overlay still open after second Esc'; Stop-Process -Id $proc.Id -Force; exit 1 }
 Log 'OK: second Esc closed the session'
 
-# ================= Scenario F: Enter copies to clipboard =================
-Log '--- F: Enter copies 300x200 to clipboard ---'
+# ================= Scenario F: Enter opens the annotation editor (M3 behavior) =================
+# NOTE: since M3, Enter opens the editor instead of copying directly. Editor is
+# the only non-fullscreen visible window of the app; full flow is verified by verify-m3.ps1.
+Log '--- F: Enter opens editor window (M3 behavior) ---'
 Invoke-Capture
 if ((Get-OverlayCount) -eq 0) { Log 'FAIL: overlay not shown'; Stop-Process -Id $proc.Id -Force; exit 1 }
 Drag-Region 400 300 300 200
 [V.Native]::keybd_event($VK_RETURN, 0, 0, [UIntPtr]::Zero)
 [V.Native]::keybd_event($VK_RETURN, 0, $KEYUP, [UIntPtr]::Zero)
 Start-Sleep -Seconds 1
-if ((Get-OverlayCount) -gt 0) { Log 'FAIL: overlay still open after Enter'; Stop-Process -Id $proc.Id -Force; exit 1 }
-Log 'OK: overlay closed after Enter'
-
-Stop-Process -Id $proc.Id -Force
+$editor = [WinEnum]::List($proc.Id) | Where-Object {
+    $p = $_ -split '\|'
+    $p[1] -eq '1' -and [int]$p[6] -gt 500 -and [int]$p[6] -lt 1400 -and [int]$p[7] -gt 400 -and [int]$p[7] -lt 900
+} | Select-Object -First 1
+if (-not $editor) { Log 'FAIL: editor not opened after Enter'; Stop-Process -Id $proc.Id -Force; exit 1 }
+Log "OK: editor opened ($editor)"
+[V.Native]::keybd_event(0x1B, 0, 0, [UIntPtr]::Zero)   # Esc closes editor
+[V.Native]::keybd_event(0x1B, 0, $KEYUP, [UIntPtr]::Zero)
 Start-Sleep -Milliseconds 500
-$img = [System.Windows.Forms.Clipboard]::GetImage()
-if ($null -eq $img) {
-    Log 'FAIL: no image in clipboard after Enter'; exit 1
-}
-if ($img.Width -ne 300 -or $img.Height -ne 200) {
-    Log "FAIL: clipboard image $($img.Width)x$($img.Height), expected 300x200"; exit 1
-}
-Log "OK: clipboard image 300x200"
-$img.Dispose()
 
-Log 'M2 verification PASSED'
+Log 'M2 verification PASSED (F updated for M3 editor flow)'
