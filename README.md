@@ -67,11 +67,10 @@ EasySnipLite.slnx
 - [设计文档](docs/superpowers/specs/2026-08-07-easysniplite-design.md)
 - [里程碑进度与踩坑记录](docs/PROGRESS.md)
 
-## 📝 项目来源
+## 参考资料
 
-本仓库原本是一个空项目。第一版产品需求描述参考了 [LiteSnap](https://github.com/HuibingLin/LiteSnap) 项目的简介与功能清单撰写,在此基础上确定了 EasySnipLite 的产品定位与功能范围。
-
-代码由 Claude Code(deepseek-v4-flash 模型)辅助生成。
+- [LiteSnap](https://github.com/HuibingLin/LiteSnap) —— 产品需求参考来源
+- 代码由 Claude Code(deepseek-v4-flash 模型)辅助生成
 
 ## License
 
