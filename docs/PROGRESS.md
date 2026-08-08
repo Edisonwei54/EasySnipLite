@@ -16,7 +16,49 @@
 
 ## 三、已完成
 
-### M3 标注编辑器（本次）
+### M0 脚手架（已提交 d056882）
+- slnx 解决方案 + WPF 主项目（net10.0-windows, UseWPF+UseWindowsForms）+ xUnit 测试项目
+- PerMonitorV2 DPI manifest、单文件发布属性、全局类型别名（消解 WPF/WinForms 二义性）
+- 空窗口可启动，构建 0 错误 0 警告
+
+### M1 截图主干（已提交 a628cf4）
+**交付**：全局热键 → 冻结屏幕 → 框选 → Enter 确认 → 复制到剪贴板，**端到端验证通过**（tools/verify-m1.ps1 自动化验证：热键唤起、遮罩窗口可见、拖拽 300x200、Enter 后窗口关闭、剪贴板读回 300x200 PNG）。
+
+**新增文件**：
+- `Core/Native/Win32.cs` — P/Invoke（BitBlt/键盘钩子/DPI/光标/窗口样式）
+- `Core/Hotkeys/ChordDetector.cs` — Ctrl+双击空格时序判定（纯逻辑，7 个单测全绿）
+- `Core/Hotkeys/KeyboardHookService.cs` — WH_KEYBOARD_LL（专用 STA 消息循环线程）
+- `Core/Imaging/ScreenCapture.cs` — 按显示器 BitBlt 冻结（物理像素 + DPI）
+- `Core/Clipboard/ClipboardEx.cs` — 剪贴板 DIB+PNG 双格式
+- `Selection/SelectionSession.cs` — 会话协调、跨屏拖拽轮询、跨屏裁剪组装
+- `Selection/RegionSelectionWindow.xaml(.cs)` — 每显示器全屏透明遮罩 + 选区 + 尺寸标签
+- `Tray/TrayIconService.cs` — NotifyIcon 最小版（区域截图/退出）
+- `App.xaml.cs` — 服务装配、热键触发截图流程
+
+**踩坑记录（重要）**：
+1. **低级键盘钩子回调内严禁磁盘 I/O**——诊断日志每次按键写文件导致回调超时，被系统静默移除钩子（表现为后续按键无响应）。已移除全部回调日志，回调保持极简。
+2. **DIB 剪贴板格式**——手写 BITMAPINFOHEADER（BI_RGB+负高度）不被 WinForms GetImage 识别（WinForms 自写格式为 BI_BITFIELDS+正高度+掩码）。改为 `DataObject.SetImage(Bitmap)` 把编码交给 WinForms，PNG 格式自己补写。兼容性最佳。
+3. **WPF/WinForms 双引入的类型二义性**——全局别名统一消解（`GlobalUsings.cs`）。
+4. PowerShell 5.1 脚本中文需 ASCII（ANSI 解码 UTF-8 会解析错乱）；验证脚本已纯英文。
+
+### M2 选区完善（已提交 4d31f92，PR #2）
+**交付**：8 手柄缩放 / 内部移动 / 方向键 1px 微调(Shift=10px) / 角点放大镜(9x9 像素 + 坐标 + RGB) / 尺寸标签 / Esc 两级取消 / Enter 复制 / Ctrl+S 保存 PNG。**端到端验证通过**（tools/verify-m2.ps1：手柄缩放后保存 340x230、微调/移动与基线像素差异、Esc 两级语义、Enter 剪贴板 300x200）。
+
+**新增/修改**：
+- `Selection/SelectionMath.cs` — 纯逻辑：命中测试(角>边>体)、手柄缩放(对边固定+最小尺寸)、移动钳制、遮罩四块计算、放大镜定位（27 个单测全绿）
+- `Selection/SelectionSession.cs` — 状态机 Idle→Selecting→Adjusting；手柄/移动/微调/放大镜广播
+- `Selection/RegionSelectionWindow.xaml(.cs)` — 8 手柄渲染 + 光标映射 + 放大镜控件
+- `App.xaml.cs` — Ctrl+S 保存（SaveFileDialog → PNG）
+- `tools/verify-m2.ps1` — M2 E2E 自动化（保存对话框用剪贴板粘贴路径自动化）
+
+**踩坑记录（重要）**：
+1. **`Rect.Empty` 的 Bottom 是 -Inf**（Y=0, Height=-Inf）→ `Math.Max(0, win.Bottom - sel.Bottom)` 得 +Inf → WPF `set_Height(+Inf)` 抛 ArgumentException 崩溃。M1 从未走 `UpdateSelection(null)` 分支（无 Esc/点击取消场景）所以没暴露；M2 的 Esc 清空选区触发。已提取 `SelectionMath.MaskRectangles` 纯函数 + `PositionMask` NaN/Inf 防御（5 个单测）。
+2. **验证脚本枚举格式自伤**：verify-m2 的 WinEnum 输出加了类名字段但匹配模式没同步，overlay 永远匹配不到（误报"overlay not shown"）。验证脚本与枚举模式必须同步。
+3. **SaveFileDialog 自动化**：SendKeys 输入路径会插入到预填文件名中 → 先 Ctrl+A 全选再粘贴（Clipboard + keybd_event 比 SendKeys 可靠）。
+4. **锁屏桌面拦截模拟键盘输入**：前台为 LockApp 时 keybd_event/SendInput 事件丢失或部分到达（低级钩子收不到），验证必须在解锁桌面运行。诊断方法：独立 WH_KEYBOARD_LL 钩子脚本 + 前台窗口检查（GetForegroundWindow）。
+5. **GetAsyncKeyState 在低级钩子回调中反映合成输入状态正常**（本次排查确认无坑）；合成输入丢失是锁屏环境所致。
+
+### M3 标注编辑器（已提交 6e07aef，PR #3）
 **交付**：全矢量对象模型（8 种标注）+ 撤销/重做 + 复制/保存/完成。Enter/双击确认 → 打开编辑器（底图 + 矢量对象 + 选中装饰）；工具条：选择 + 8 工具 + 8 色 + 线宽 + 撤销/重做/删除；数字键 1-9 切工具；Delete 删除、Ctrl+Z/Y 撤销重做、Ctrl+C/S 复制保存、Enter 完成（复制并关闭）、Esc 关闭；文字内联输入框、表情分类面板（Segoe UI Emoji 5 类）。**端到端验证通过**（tools/verify-m3.ps1：Enter 开编辑器、D2 切矩形 → 画布拖拽 → Ctrl+C 有矩形、Ctrl+Z 撤销后无矩形、Enter 完成复制 300x200）；M2 回归（verify-m2 场景 F 已更新）通过；**单测 90/90 全绿**（新增 53 个）。
 
 **新增/修改**：
@@ -43,7 +85,7 @@
 7. **PowerShell `$pid` 是只读自动变量**：不能作函数参数名，否则"变量为只读"错误。
 8. **ToggleButton 无 GroupName**（RadioButton 才有）→ 工具互斥手动维护。
 
-### M4 滚动长截图（2026-08-08 已决定跳过；实现已合并进 main，分支保留）
+### M4 滚动长截图（2026-08-08 已决定跳过；PR #4 合并进 main 9995a59，分支保留）
 > 用户决定：M4 功能整体跳过（不做/暂缓）。实现 + 单测经 **PR #4 合并进 main（9995a59）**存档；
 > 分支 `feature/m4-scroll-capture` 远端保留（本地已按规则清除，HEAD b2bb023）。以下为存档记录，若将来捡起可直接继续。
 **已完成（TDD + 实现，未通过 E2E）**：
@@ -62,7 +104,7 @@
 3. 第二显示器被全屏 Edge 覆盖时，滚轮事件发给光标下的 Edge 而非目标窗口——验证脚本必须把目标窗口移到确定屏幕。
 4. 验证脚本剪贴板轮询：单屏高度图（未滚动即到底）既不满足尺寸又不该丢弃，需显式 break 判定失败。
 
-### M5 贴屏+托盘（2026-08-08，本次）
+### M5 贴屏+托盘（2026-08-08 本次；单测 121/121，手工 E2E 已验证；PR #5 已创建待合并）
 **交付**：PinWindow 贴屏（1:1 物理像素/DpiScale 置顶、显示在截图原位置、左键拖动、Ctrl+滚轮缩放 50%~300%、右键菜单：鼠标穿透/透明度/100% 缩放/复制/保存/关闭）；编辑器动作条「贴到屏幕」入口（贴屏后关编辑器）；多张贴屏并存（组内点击置顶）；全局热键 **Ctrl+Shift+P** 切换穿透（穿透后鼠标点不到窗口，此为恢复手段）；单实例 Mutex（二次启动提示「已在运行」后退出）；托盘菜单移除「滚动长截图」入口（M4 已跳过，现仅 区域截图/退出）。**单测 121/121 全绿**（新增 PinMathTests 10 个）。**手工 E2E 已验证**（贴屏 1:1/拖动/穿透切换/透明度/缩放/多张置顶/单实例提示/托盘菜单 8 项全过，2026-08-08）。
 
 **新增/修改**：
@@ -77,55 +119,11 @@
 
 **踩坑记录**：无（subagent 流程全程审查通过，无新增踩坑）。
 
-### M0 脚手架（已提交 d056882）
-- slnx 解决方案 + WPF 主项目（net10.0-windows, UseWPF+UseWindowsForms）+ xUnit 测试项目
-- PerMonitorV2 DPI manifest、单文件发布属性、全局类型别名（消解 WPF/WinForms 二义性）
-- 空窗口可启动，构建 0 错误 0 警告
-
-### M2 选区完善（本次）
-**交付**：8 手柄缩放 / 内部移动 / 方向键 1px 微调(Shift=10px) / 角点放大镜(9x9 像素 + 坐标 + RGB) / 尺寸标签 / Esc 两级取消 / Enter 复制 / Ctrl+S 保存 PNG。**端到端验证通过**（tools/verify-m2.ps1：手柄缩放后保存 340x230、微调/移动与基线像素差异、Esc 两级语义、Enter 剪贴板 300x200）。
-
-**新增/修改**：
-- `Selection/SelectionMath.cs` — 纯逻辑：命中测试(角>边>体)、手柄缩放(对边固定+最小尺寸)、移动钳制、遮罩四块计算、放大镜定位（27 个单测全绿）
-- `Selection/SelectionSession.cs` — 状态机 Idle→Selecting→Adjusting；手柄/移动/微调/放大镜广播
-- `Selection/RegionSelectionWindow.xaml(.cs)` — 8 手柄渲染 + 光标映射 + 放大镜控件
-- `App.xaml.cs` — Ctrl+S 保存（SaveFileDialog → PNG）
-- `tools/verify-m2.ps1` — M2 E2E 自动化（保存对话框用剪贴板粘贴路径自动化）
-
-**踩坑记录（重要）**：
-1. **`Rect.Empty` 的 Bottom 是 -Inf**（Y=0, Height=-Inf）→ `Math.Max(0, win.Bottom - sel.Bottom)` 得 +Inf → WPF `set_Height(+Inf)` 抛 ArgumentException 崩溃。M1 从未走 `UpdateSelection(null)` 分支（无 Esc/点击取消场景）所以没暴露；M2 的 Esc 清空选区触发。已提取 `SelectionMath.MaskRectangles` 纯函数 + `PositionMask` NaN/Inf 防御（5 个单测）。
-2. **验证脚本枚举格式自伤**：verify-m2 的 WinEnum 输出加了类名字段但匹配模式没同步，overlay 永远匹配不到（误报"overlay not shown"）。验证脚本与枚举模式必须同步。
-3. **SaveFileDialog 自动化**：SendKeys 输入路径会插入到预填文件名中 → 先 Ctrl+A 全选再粘贴（Clipboard + keybd_event 比 SendKeys 可靠）。
-4. **锁屏桌面拦截模拟键盘输入**：前台为 LockApp 时 keybd_event/SendInput 事件丢失或部分到达（低级钩子收不到），验证必须在解锁桌面运行。诊断方法：独立 WH_KEYBOARD_LL 钩子脚本 + 前台窗口检查（GetForegroundWindow）。
-5. **GetAsyncKeyState 在低级钩子回调中反映合成输入状态正常**（本次排查确认无坑）；合成输入丢失是锁屏环境所致。
-
-### M1 截图主干（已提交 a628cf4）
-**交付**：全局热键 → 冻结屏幕 → 框选 → Enter 确认 → 复制到剪贴板，**端到端验证通过**（tools/verify-m1.ps1 自动化验证：热键唤起、遮罩窗口可见、拖拽 300x200、Enter 后窗口关闭、剪贴板读回 300x200 PNG）。
-
-**新增文件**：
-- `Core/Native/Win32.cs` — P/Invoke（BitBlt/键盘钩子/DPI/光标/窗口样式）
-- `Core/Hotkeys/ChordDetector.cs` — Ctrl+双击空格时序判定（纯逻辑，7 个单测全绿）
-- `Core/Hotkeys/KeyboardHookService.cs` — WH_KEYBOARD_LL（专用 STA 消息循环线程）
-- `Core/Imaging/ScreenCapture.cs` — 按显示器 BitBlt 冻结（物理像素 + DPI）
-- `Core/Clipboard/ClipboardEx.cs` — 剪贴板 DIB+PNG 双格式
-- `Selection/SelectionSession.cs` — 会话协调、跨屏拖拽轮询、跨屏裁剪组装
-- `Selection/RegionSelectionWindow.xaml(.cs)` — 每显示器全屏透明遮罩 + 选区 + 尺寸标签
-- `Tray/TrayIconService.cs` — NotifyIcon 最小版（区域截图/退出）
-- `App.xaml.cs` — 服务装配、热键触发截图流程
-
-**踩坑记录（重要）**：
-1. **低级键盘钩子回调内严禁磁盘 I/O**——诊断日志每次按键写文件导致回调超时，被系统静默移除钩子（表现为后续按键无响应）。已移除全部回调日志，回调保持极简。
-2. **DIB 剪贴板格式**——手写 BITMAPINFOHEADER（BI_RGB+负高度）不被 WinForms GetImage 识别（WinForms 自写格式为 BI_BITFIELDS+正高度+掩码）。改为 `DataObject.SetImage(Bitmap)` 把编码交给 WinForms，PNG 格式自己补写。兼容性最佳。
-3. **WPF/WinForms 双引入的类型二义性**——全局别名统一消解（`GlobalUsings.cs`）。
-4. PowerShell 5.1 脚本中文需 ASCII（ANSI 解码 UTF-8 会解析错乱）；验证脚本已纯英文。
-
 ## 四、接下来要做什么
 
 | 里程碑 | 内容 | 验证方式 |
 |--------|------|----------|
-| ~~M4 滚动长截图~~（已跳过，存档） | ImageAligner/ScrollInput/Engine/Preview 实现+单测 ✅（PR #4 已合并进 main），E2E 阻塞截帧陈旧 | — |
-| ~~M5 贴屏+托盘~~（已完成，手工 E2E 已验证） | PinWindow（1:1/穿透/透明度/缩放）、编辑器「贴到屏幕」入口、单实例 Mutex、托盘移除滚动长截图入口 | 手工 |
-| **M6 设置+i18n**（下一个） | 快捷键录制、语言/保存目录/滚轮步长设置、三语切换 | 手工 |
+| **M6 设置+i18n**（下一个） | 快捷键录制、语言/保存目录/滚轮步长设置、三语切换、开机自启（注册表 Run） | 手工 |
 | M7 打磨+发布 | 边界处理、错误提示、单文件 publish 冒烟、README | 冒烟测试 |
 
 ## 五、总计划（架构与流程）
