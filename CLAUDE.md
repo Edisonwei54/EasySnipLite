@@ -41,6 +41,7 @@ docs/                      PROGRESS.md（里程碑进度）、superpowers/specs/
 7. **验证纪律**：每个里程碑结束运行对应验证脚本 + `dotnet test` 全绿后才提交；改完代码必须重新 build（构建失败时跑的是旧 exe，验证结果无效）。
 8. **进度跟踪**：里程碑进度与踩坑记录见 `docs/PROGRESS.md`，动手前先看「接下来要做什么」。
 9. **分支合并与删除（硬性规则）**：**分支合并动作完全不允许执行**（含 `gh pr merge`/`git merge`/squash 等任何形式），创建 PR 后停下由用户手动合并；**远程分支完全不允许删除**（含 `gh pr merge --delete-branch`、`git push origin --delete`），PR 合并后远程分支保留，清理先问用户。
+10. **提交前文档同步**：开发完成、提交之前，必须检查并更新 `CLAUDE.md`、`README.md` 及相关进度/临时文档（如 `docs/PROGRESS.md`、`1.md`），文档与代码/仓库实际状态一致后再提交。
 
 ## 现状
 
