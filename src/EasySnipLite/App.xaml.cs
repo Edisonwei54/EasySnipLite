@@ -1,3 +1,4 @@
+using System.IO;
 using System.Windows;
 using System.Windows.Media.Imaging;
 using EasySnipLite.Core.ClipboardServices;
@@ -46,9 +47,47 @@ public partial class App : Application
             ClipboardEx.SetImage(result);
             FinishSession();
         };
+        session.SaveRequested += result =>
+        {
+            SaveImage(result);
+            FinishSession();
+        };
         session.Cancelled += FinishSession;
         _session = session;
         session.Start();
+    }
+
+    /// <summary>Ctrl+S 保存:SaveFileDialog 选择路径后写 PNG。</summary>
+    private static void SaveImage(BitmapSource image)
+    {
+        var dialog = new Microsoft.Win32.SaveFileDialog
+        {
+            Filter = "PNG 图片 (*.png)|*.png",
+            DefaultExt = ".png",
+            FileName = $"EasySnipLite_{DateTime.Now:yyyyMMdd_HHmmss}.png",
+            InitialDirectory = DefaultSaveDir(),
+        };
+        if (dialog.ShowDialog() != true) return;
+
+        using var stream = File.Create(dialog.FileName);
+        var encoder = new PngBitmapEncoder();
+        encoder.Frames.Add(BitmapFrame.Create(image));
+        encoder.Save(stream);
+    }
+
+    private static string DefaultSaveDir()
+    {
+        var pictures = Environment.GetFolderPath(Environment.SpecialFolder.MyPictures);
+        var dir = Path.Combine(pictures, "EasySnipLite");
+        try
+        {
+            Directory.CreateDirectory(dir);
+            return dir;
+        }
+        catch
+        {
+            return pictures;
+        }
     }
 
     private void FinishSession()

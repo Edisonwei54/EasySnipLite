@@ -9,3 +9,4 @@ global using Cursors = System.Windows.Input.Cursors;
 global using DataObject = System.Windows.DataObject;
 global using DataFormats = System.Windows.DataFormats;
 global using Clipboard = System.Windows.Clipboard;
+global using Color = System.Windows.Media.Color;
