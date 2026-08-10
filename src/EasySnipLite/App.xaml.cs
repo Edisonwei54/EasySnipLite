@@ -51,6 +51,7 @@ public partial class App : Application
         _settings = SettingsStore.Load(SettingsStore.DefaultPath());
         ImageFile.DefaultSaveDirProvider = () => _settings.SaveDirectory;
         RegistryAutoStart.Sync(_settings.Autostart); // 启动同步：设置开但注册表缺失则补写
+        LocaleService.SetLocale(_settings.Language); // 启动即按设置语言渲染（托盘等）
         BuildDetectors();
 
         _tray = new TrayIconService();
@@ -131,17 +132,19 @@ public partial class App : Application
     private async Task<HotkeySpec?> RecordHotkeyAsync(HotkeyKind kind)
     {
         _recordTcs = new TaskCompletionSource<HotkeySpec?>();
-        _recorder = new HotkeyRecorder(kind, ChordWindow);
-        _recorder.Recorded += spec =>
+        // 先订阅后发布：避免钩子线程事件在字段赋值前到达（无订阅者导致 TCS 永不完成）
+        var recorder = new HotkeyRecorder(kind, ChordWindow);
+        recorder.Recorded += spec =>
         {
             _recorder = null;
             _recordTcs.TrySetResult(spec);
         };
-        _recorder.Cancelled += () =>
+        recorder.Cancelled += () =>
         {
             _recorder = null;
             _recordTcs.TrySetResult(null);
         };
+        _recorder = recorder;
         return await _recordTcs.Task; // await 续回 UI 线程（ShowDialog 嵌套 Dispatcher 循环）
     }
 
@@ -152,9 +155,9 @@ public partial class App : Application
         SettingsStore.Save(SettingsStore.DefaultPath(), next);
         ImageFile.DefaultSaveDirProvider = () => next.SaveDirectory;
         RegistryAutoStart.Sync(next.Autostart);
+        LocaleService.SetLocale(next.Language); // 先切语言再重建托盘：AppResources 动态解析，托盘需按新语言渲染
         BuildDetectors();
         RebuildTray();
-        LocaleService.SetLocale(next.Language);
         foreach (var pin in _pins) pin.ApplyLocale(next.ZoomFactor);
     }
 
