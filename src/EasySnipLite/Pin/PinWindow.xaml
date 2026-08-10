@@ -8,20 +8,4 @@
     <Border x:Name="Frame" BorderBrush="#FF7A7A82" BorderThickness="1">
         <Image x:Name="PinImage" Stretch="Fill"/>
     </Border>
-    <Window.ContextMenu>
-        <ContextMenu>
-            <MenuItem x:Name="PassthroughMenuItem" Header="鼠标穿透" IsCheckable="True" Checked="Passthrough_Toggled" Unchecked="Passthrough_Toggled"/>
-            <MenuItem Header="透明度">
-                <MenuItem Header="100%" Tag="1.0" Click="Opacity_Click"/>
-                <MenuItem Header="85%" Tag="0.85" Click="Opacity_Click"/>
-                <MenuItem Header="70%" Tag="0.7" Click="Opacity_Click"/>
-                <MenuItem Header="50%" Tag="0.5" Click="Opacity_Click"/>
-            </MenuItem>
-            <MenuItem Header="100% 缩放" Click="Zoom100_Click"/>
-            <Separator/>
-            <MenuItem Header="复制" Click="Copy_Click"/>
-            <MenuItem Header="保存" Click="Save_Click"/>
-            <MenuItem Header="关闭" Click="Close_Click"/>
-        </ContextMenu>
-    </Window.ContextMenu>
 </Window>
