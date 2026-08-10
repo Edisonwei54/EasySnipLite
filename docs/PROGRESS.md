@@ -146,7 +146,7 @@
 6. **低级键盘钩子对修饰键报左右专用虚拟键码（VK_LCONTROL 0xA2 等），热键录制 IsModifierKey 只认通用码（0x10/0x11/0x12）导致修饰键被当目标键录制（组合键一按即结束/穿透热键失效/冲突误判）**——已统一识别 0xA0-0xA5（新增 `Core/Settings/ModifierKey.cs`），且 `Settings.ValidSpec` 拒绝修饰键码作目标键（防御已污染的 settings.json 回退默认）。
 7. **自动识别单击需双击窗口到期敲定——定时器必须挂钩子线程 dispatcher（与 HandleKey 同线程），挂 UI 线程会与钩子事件竞态**：`HotkeyRecorder.HandleTimeout(now)` 由钩子线程 `DispatcherTimer` 调用（`KeyboardHookService.Dispatcher`，Start 完成后非 null；`new DispatcherTimer(DispatcherPriority.Normal, hookDispatcher)`），单击候选窗口到期敲定为 Combo；Chord 判定逻辑不变，autoDetect 只补「到期完成单次按键」路径。另：截图行录制可能产出 Combo spec，`SettingsWindow._pending` 元组去掉 Kind，CommitPending 改按按钮身份（Btn == CaptureRecordBtn）写目标字段。
 
-### M7 打磨+发布（2026-08-10 本次；单测 188/188 全绿；verify-m7 发布冒烟 PASSED；版本 1.0.0；PR #7 待用户合并）
+### M7 打磨+发布（2026-08-10 本次；单测 188/188 全绿；verify-m7 发布冒烟 PASSED；版本 1.0.0；PR #7 已合并进 main ef33427）
 **交付**：错误处理管线（`Core/Diagnostics/AppErrors.cs`：error.log 追加 + 512KB 归档 .old、托盘气泡委托 TrayNotify 注入、Fatal 弹窗退出；App 三钩子：DispatcherUnhandledException 非致命气泡 + 继续运行、AppDomain 致命弹窗退出、Unobserved 仅日志）；启动成功气泡（总是显示，含开机自启状态）+ 设置保存失败气泡（ApplySettings 改返回 bool，内存态仍更新）；边界小修：Settings.ValidSpec 修饰键位掩码校验（非法位回退默认）、ImageFile WriteProbe 可写性探测（已存在只读目录回退下一候选）、LocaleChanged 零订阅者死事件移除（YAGNI）；补测试 12 个（AppErrors 4 / Settings 1 / ImageFile 2 / Chord 2 / Combo 1 / Recorder 2）：**176 → 188**；tools/verify-m7.ps1 单文件发布冒烟（publish → 热键 → 框选 → 编辑器 Complete → 剪贴板 300x200 → 无 error.log）**PASSED**；版本 **0.1.0 → 1.0.0**；README 新增「发布」小节。
 
 **新增文件**：
@@ -164,7 +164,7 @@
 
 | 里程碑 | 内容 | 验证方式 |
 |--------|------|----------|
-| M7 打磨+发布 | 边界处理、错误提示、单文件 publish 冒烟、README | ✅ 已完成（单测 188/188，发布冒烟通过，PR #7 待用户合并；发布说明见 README「发布」小节） |
+| M7 打磨+发布 | 边界处理、错误提示、单文件 publish 冒烟、README | ✅ 已完成（单测 188/188，发布冒烟通过，PR #7 已合并；发布说明见 README「发布」小节） |
 | M6 设置+i18n | 快捷键录制、语言/保存目录/滚轮步长设置、三语切换、开机自启（注册表 Run） | ✅ 已完成（单测 176/176，手工 E2E 已验证，PR #6 已合并） |
 | —— | **M0-M7 全部完成**，进入维护期（缺陷修复/新功能建议） | — |
 
