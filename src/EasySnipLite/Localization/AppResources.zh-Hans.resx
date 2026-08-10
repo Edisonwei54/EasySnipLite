@@ -76,4 +76,8 @@
   <data name="SaveBtn" xml:space="preserve"><value>保存</value></data>
   <data name="CancelBtn" xml:space="preserve"><value>取消</value></data>
   <data name="ResetBtn" xml:space="preserve"><value>重置默认</value></data>
+  <data name="AppStarted" xml:space="preserve"><value>EasySnipLite 已启动，正在系统托盘运行。</value></data>
+  <data name="SettingsSaveFailed" xml:space="preserve"><value>设置保存失败：本次会话仍生效，下次启动将重试。</value></data>
+  <data name="UnhandledNotify" xml:space="preserve"><value>发生内部错误，详情已写入日志。</value></data>
+  <data name="UnhandledErrorBody" xml:space="preserve"><value>发生未预期的错误，应用即将退出。详情已写入日志。</value></data>
 </root>

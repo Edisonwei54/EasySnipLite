@@ -76,4 +76,8 @@
   <data name="SaveBtn" xml:space="preserve"><value>儲存</value></data>
   <data name="CancelBtn" xml:space="preserve"><value>取消</value></data>
   <data name="ResetBtn" xml:space="preserve"><value>重設預設</value></data>
+  <data name="AppStarted" xml:space="preserve"><value>EasySnipLite 已啟動，正在系統匣執行。</value></data>
+  <data name="SettingsSaveFailed" xml:space="preserve"><value>設定儲存失敗：本次工作階段仍生效，下次啟動將重試。</value></data>
+  <data name="UnhandledNotify" xml:space="preserve"><value>發生內部錯誤，詳情已寫入日誌。</value></data>
+  <data name="UnhandledErrorBody" xml:space="preserve"><value>發生未預期的錯誤，應用程式即將結束。詳情已寫入日誌。</value></data>
 </root>
