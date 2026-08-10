@@ -3,9 +3,11 @@ using System.Windows;
 using System.Windows.Media.Imaging;
 using EasySnipLite.Core.Hotkeys;
 using EasySnipLite.Core.Imaging;
-using EasySnipLite.Core.Native;
-using EasySnipLite.Selection;
+using EasySnipLite.Core.Settings;
+using EasySnipLite.Localization;
 using EasySnipLite.Pin;
+using EasySnipLite.Selection;
+using EasySnipLite.SettingsUI;
 using EasySnipLite.Stitching;
 using EasySnipLite.Tray;
 
@@ -13,13 +15,21 @@ namespace EasySnipLite;
 
 public partial class App : Application
 {
+    private static readonly TimeSpan ChordWindow = TimeSpan.FromMilliseconds(300);
+
     private KeyboardHookService? _hook;
-    private readonly ChordDetector _chord = new(TimeSpan.FromMilliseconds(300));
+    private ChordDetector? _chord;
+    private ComboDetector? _combo;
     private SelectionSession? _session;
     private TrayIconService? _tray;
     private Mutex? _mutex; // 单实例，持有引用防 GC
     private readonly List<PinWindow> _pins = new();
-    private bool _passthroughKeyPressed; // 防 Ctrl+Shift+P 按住 auto-repeat 反复切换
+    private Settings _settings = new();
+
+    // 录制状态：录制期间自身热键只喂 recorder；设置窗口打开期间屏蔽自身热键
+    private HotkeyRecorder? _recorder;
+    private TaskCompletionSource<HotkeySpec?>? _recordTcs;
+    private bool _settingsWindowOpen;
 
     protected override void OnStartup(StartupEventArgs e)
     {
@@ -29,7 +39,7 @@ public partial class App : Application
         _mutex = new Mutex(true, "EasySnipLite_SingleInstance", out bool createdNew);
         if (!createdNew)
         {
-            MessageBox.Show("EasySnipLite 已在运行。", "EasySnipLite",
+            MessageBox.Show(AppResources.SingleInstanceMsg, "EasySnipLite",
                 MessageBoxButton.OK, MessageBoxImage.Information);
             Shutdown();
             return;
@@ -37,9 +47,17 @@ public partial class App : Application
 
         ShutdownMode = ShutdownMode.OnExplicitShutdown;
 
+        // 设置加载与装配（M6）
+        _settings = SettingsStore.Load(SettingsStore.DefaultPath());
+        ImageFile.DefaultSaveDirProvider = () => _settings.SaveDirectory;
+        RegistryAutoStart.Sync(_settings.Autostart); // 启动同步：设置开但注册表缺失则补写
+        BuildDetectors();
+
         _tray = new TrayIconService();
         _tray.CaptureRequested += StartCapture;
+        _tray.SettingsRequested += ShowSettings;
         _tray.ExitRequested += Shutdown;
+        RebuildTray();
 
         _hook = new KeyboardHookService();
         _hook.KeyReceived += OnKey;
@@ -56,26 +74,39 @@ public partial class App : Application
         }
     }
 
-    /// <summary>钩子线程事件；双击判定后切回 UI 线程启动截图。</summary>
+    /// <summary>按当前设置构建两个热键探测器。</summary>
+    private void BuildDetectors()
+    {
+        var shot = _settings.ResolvedScreenshotHotkey;
+        _chord = new ChordDetector(ChordWindow, shot.VirtualKey, shot.Modifiers);
+        var pass = _settings.ResolvedPassthroughHotkey;
+        _combo = new ComboDetector(pass.VirtualKey, pass.Modifiers);
+    }
+
+    private void RebuildTray()
+    {
+        if (_tray is null) return;
+        var hotkeyText = HotkeyFormat.Format(_settings.ResolvedScreenshotHotkey, AppResources.HotkeyDoubleTap);
+        _tray.Rebuild(hotkeyText);
+    }
+
+    /// <summary>钩子线程事件：录制优先，其次查表分发（截图 chord / 穿透 combo）。</summary>
     private void OnKey(KeyEvent evt)
     {
-        if (_chord.HandleKey(evt))
+        if (_recorder is not null)
+        {
+            _recorder.HandleKey(evt);
+            return;
+        }
+        if (_settingsWindowOpen) return; // 设置窗口打开期间不触发全局热键
+        if (_chord is not null && _chord.HandleKey(evt))
         {
             Dispatcher.BeginInvoke(StartCapture);
             return;
         }
-        // 贴屏穿透全局热键：Ctrl+Shift+P（穿透后鼠标点不到窗口，此为恢复手段）
-        if (evt.VirtualKey == Win32.VK_P && evt.CtrlDown && evt.ShiftDown)
+        if (_combo is not null && _combo.HandleKey(evt))
         {
-            if (evt.Type == KeyEventType.KeyUp)
-            {
-                _passthroughKeyPressed = false;
-            }
-            else if (evt.Type == KeyEventType.KeyDown && !_passthroughKeyPressed)
-            {
-                _passthroughKeyPressed = true;
-                Dispatcher.BeginInvoke(TogglePinPassthrough);
-            }
+            Dispatcher.BeginInvoke(TogglePinPassthrough);
         }
     }
 
@@ -85,6 +116,46 @@ public partial class App : Application
         if (_pins.Count == 0) return;
         var next = !_pins[0].IsPassthrough;
         foreach (var pin in _pins) pin.IsPassthrough = next;
+    }
+
+    /// <summary>设置窗口入口（模态）：录制回调 + 保存回调。</summary>
+    private void ShowSettings()
+    {
+        _settingsWindowOpen = true;
+        var win = new SettingsWindow(_settings, RecordHotkeyAsync, ApplySettings);
+        win.ShowDialog();
+        _settingsWindowOpen = false;
+    }
+
+    /// <summary>录制入口：设置录制状态（OnKey 优先喂 recorder），等待 Hook 线程事件，完成后返回 spec（取消=null）。</summary>
+    private async Task<HotkeySpec?> RecordHotkeyAsync(HotkeyKind kind)
+    {
+        _recordTcs = new TaskCompletionSource<HotkeySpec?>();
+        _recorder = new HotkeyRecorder(kind, ChordWindow);
+        _recorder.Recorded += spec =>
+        {
+            _recorder = null;
+            _recordTcs.TrySetResult(spec);
+        };
+        _recorder.Cancelled += () =>
+        {
+            _recorder = null;
+            _recordTcs.TrySetResult(null);
+        };
+        return await _recordTcs.Task; // await 续回 UI 线程（ShowDialog 嵌套 Dispatcher 循环）
+    }
+
+    /// <summary>保存回调：落盘 + 全局应用（热键/托盘/贴屏步长/语言/自启/保存目录）。</summary>
+    private void ApplySettings(Settings next)
+    {
+        _settings = next;
+        SettingsStore.Save(SettingsStore.DefaultPath(), next);
+        ImageFile.DefaultSaveDirProvider = () => next.SaveDirectory;
+        RegistryAutoStart.Sync(next.Autostart);
+        BuildDetectors();
+        RebuildTray();
+        LocaleService.SetLocale(next.Language);
+        foreach (var pin in _pins) pin.ApplyLocale(next.ZoomFactor);
     }
 
     private void StartCapture()
@@ -116,7 +187,7 @@ public partial class App : Application
         editor.ShowDialog();
     }
 
-    /// <summary>打开贴屏窗口：位置=截图原位置(物理像素)，1:1 尺寸；region 缺失时屏幕居中兜底。</summary>
+    /// <summary>打开贴屏窗口：位置=截图原位置(物理像素)，1:1 尺寸；region 缺失时屏幕居中兜底。步长取当前设置。</summary>
     private void OpenPin(BitmapSource image, Int32Rect? region)
     {
         int x, y;
@@ -132,7 +203,7 @@ public partial class App : Application
             y = (int)Math.Round(work.Top + (work.Height - image.PixelHeight) / 2.0);
         }
 
-        var pin = new PinWindow(image, x, y);
+        var pin = new PinWindow(image, x, y, _settings.ZoomFactor);
         pin.Closed += (_, _) => _pins.Remove(pin);
         _pins.Add(pin);
         pin.Show();
