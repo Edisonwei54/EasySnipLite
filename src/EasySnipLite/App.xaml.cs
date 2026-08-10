@@ -28,6 +28,7 @@ public partial class App : Application
     private Mutex? _mutex; // 单实例，持有引用防 GC
     private readonly List<PinWindow> _pins = new();
     private Settings _settings = new();
+    private bool _startupComplete; // 启动期异常走 Fatal（否则成静默僵尸进程）
 
     // 录制状态：录制期间自身热键只喂 recorder；设置窗口打开期间屏蔽自身热键
     // volatile：UI 线程写、钩子线程读（x64 下实际良性，一字保险）
@@ -43,6 +44,13 @@ public partial class App : Application
         // 注：lambda 参数名 e 合法遮蔽 OnStartup 的 StartupEventArgs e（C# 允许，阴影仅在 lambda 作用域内）
         DispatcherUnhandledException += (_, e) =>
         {
+            if (!_startupComplete)
+            {
+                // 启动期异常：静默置 Handled 会成无托盘无热键的僵尸进程（AppDomain 钩子收不到已处理异常）
+                AppErrors.Fatal(e.Exception, AppResources.UnhandledErrorBody);
+                e.Handled = true;
+                return;
+            }
             AppErrors.Notify(e.Exception, AppResources.UnhandledNotify); // 非致命：气泡+日志，继续运行
             e.Handled = true;
         };
@@ -97,6 +105,8 @@ public partial class App : Application
         {
             Dispatcher.BeginInvoke(() => OpenStitch(new Int32Rect(x, y, w, h), autoCopy: true));
         }
+
+        _startupComplete = true;
     }
 
     /// <summary>按当前设置构建两个热键探测器（截图按 Kind 派发 chord/combo 其一）。</summary>

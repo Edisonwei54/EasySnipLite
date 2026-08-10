@@ -123,6 +123,10 @@ if ($null -eq $img) {
     exit 1
 }
 Log "OK: clipboard image $($img.Width)x$($img.Height)"
+if ($img.Width -lt 280 -or $img.Width -gt 320 -or $img.Height -lt 180 -or $img.Height -gt 220) {
+    Log "FAIL: clipboard size $($img.Width)x$($img.Height), expected ~300x200"; exit 1
+}
+Log 'OK: clipboard size ~300x200'
 $out = 'D:\EasySnipLite\tools\m7-capture.png'
 $img.Save($out, [System.Drawing.Imaging.ImageFormat]::Png)
 Log "OK: saved $out"
