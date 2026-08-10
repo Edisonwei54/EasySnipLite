@@ -4,12 +4,7 @@ using EasySnipLite.Core.Hotkeys;
 using EasySnipLite.Core.Settings;
 using EasySnipLite.Localization;
 
-// 命名空间 EasySnipLite.Settings 与类型 EasySnipLite.Core.Settings.Settings 同名：
-// 简单名 Settings 在文件作用域 using 下会绑到 enclosing 命名空间（成员优先于 using），导致 CS0118；
-// 故改用块作用域命名空间并把别名放进命名空间体内（最内层成员优先，别名胜出）。同 CLAUDE.md 规则 6 的命名冲突。
-namespace EasySnipLite.Settings
-{
-    using Settings = EasySnipLite.Core.Settings.Settings;
+namespace EasySnipLite.SettingsUI;
 
 /// <summary>
 /// 设置窗口（托盘「设置」入口，模态）。常规区（语言/保存目录/滚轮步长/自启）+ 快捷键区（录制）。
@@ -195,5 +190,4 @@ public sealed partial class SettingsWindow : Window
             2 => ZoomStepPreset.Large,
             _ => ZoomStepPreset.Medium,
         };
-}
 }
