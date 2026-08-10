@@ -23,7 +23,8 @@ public static class RegistryAutoStart
         try
         {
             using var key = Registry.CurrentUser.CreateSubKey(RunKeyPath, writable: true);
-            if (enabled) key?.SetValue(ValueName, Environment.ProcessPath);
+            var path = Environment.ProcessPath ?? string.Empty;
+            if (enabled) key?.SetValue(ValueName, path);
             else key?.DeleteValue(ValueName, throwOnMissingValue: false);
         }
         catch { /* 静默：下次启动再尝试 */ }
