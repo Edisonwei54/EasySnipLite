@@ -1,4 +1,7 @@
 using EasySnipLite.Core.Settings;
+// 注意：命名空间 EasySnipLite.Settings（Settings/SettingsWindow）与类型 Settings 同名，
+// 在 EasySnipLite.Tests 内简单名 Settings 会被 enclosing 命名空间成员抢走（CS0118），
+// 故这里对类型用全限定 EasySnipLite.Core.Settings.Settings（同 CLAUDE.md 规则 6 的命名冲突）。
 
 namespace EasySnipLite.Tests;
 
@@ -15,7 +18,7 @@ public class SettingsStoreTests
     public void RoundTrip_PreservesAllFields()
     {
         var path = TempPath();
-        var original = new Settings(
+        var original = new EasySnipLite.Core.Settings.Settings(
             AppLanguage.TraditionalChinese,
             @"C:\Users\test\Pictures",
             ZoomStepPreset.Large,
@@ -36,7 +39,7 @@ public class SettingsStoreTests
 
         var loaded = SettingsStore.Load(path);
 
-        Assert.Equal(new Settings(), loaded);
+        Assert.Equal(new EasySnipLite.Core.Settings.Settings(), loaded);
         Assert.Equal(HotkeySpec.DefaultScreenshot, loaded.ResolvedScreenshotHotkey);
         Assert.Equal(HotkeySpec.DefaultPassthrough, loaded.ResolvedPassthroughHotkey);
         Assert.Equal(1.1, loaded.ZoomFactor);
@@ -48,7 +51,7 @@ public class SettingsStoreTests
         var path = TempPath();
         File.WriteAllText(path, "{{{{ not json }}}}");
 
-        Assert.Equal(new Settings(), SettingsStore.Load(path));
+        Assert.Equal(new EasySnipLite.Core.Settings.Settings(), SettingsStore.Load(path));
     }
 
     [Fact]
@@ -77,9 +80,9 @@ public class SettingsStoreTests
     [Fact]
     public void ZoomFactor_MapsPresets()
     {
-        Assert.Equal(1.05, new Settings(ZoomStep: ZoomStepPreset.Small).ZoomFactor);
-        Assert.Equal(1.1, new Settings(ZoomStep: ZoomStepPreset.Medium).ZoomFactor);
-        Assert.Equal(1.2, new Settings(ZoomStep: ZoomStepPreset.Large).ZoomFactor);
+        Assert.Equal(1.05, new EasySnipLite.Core.Settings.Settings(ZoomStep: ZoomStepPreset.Small).ZoomFactor);
+        Assert.Equal(1.1, new EasySnipLite.Core.Settings.Settings(ZoomStep: ZoomStepPreset.Medium).ZoomFactor);
+        Assert.Equal(1.2, new EasySnipLite.Core.Settings.Settings(ZoomStep: ZoomStepPreset.Large).ZoomFactor);
     }
 
     [Fact]
