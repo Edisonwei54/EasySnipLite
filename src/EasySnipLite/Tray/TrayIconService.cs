@@ -42,6 +42,10 @@ public sealed class TrayIconService : IDisposable
         _menu.Items.Add(AppResources.TrayExit, null, (_, _) => ExitRequested?.Invoke());
     }
 
+    /// <summary>托盘气泡提示（M7 错误/启动提示通道；Win10 显示为托盘附近气泡）。</summary>
+    public void ShowBalloon(string text) =>
+        _icon.ShowBalloonTip(3000, "EasySnipLite", text, ToolTipIcon.Info);
+
     public void Dispose()
     {
         _icon.Visible = false;

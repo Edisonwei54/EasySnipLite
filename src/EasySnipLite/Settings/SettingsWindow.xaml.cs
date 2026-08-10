@@ -15,7 +15,7 @@ namespace EasySnipLite.SettingsUI;
 public sealed partial class SettingsWindow : Window
 {
     private readonly Func<HotkeyKind, Task<HotkeySpec?>> _record;
-    private readonly Action<Settings> _apply;
+    private readonly Func<Settings, bool> _apply;
     private Settings _draft;
     private bool _suppressPreview; // 重建下拉项时抑制 SelectionChanged 再入
     // 待确认的录制结果：捕获成功后按钮变「确定」，点击才写入 _draft；再次点本行「录制」=重试覆盖
@@ -24,7 +24,7 @@ public sealed partial class SettingsWindow : Window
     private readonly CultureInfo _initialCulture; // 语言预览前的初始语言（未保存关闭时恢复）
     private bool _saved; // 已保存：关闭时不再恢复预览语言（ApplySettings 已 SetLocale 终值）
 
-    public SettingsWindow(Settings current, Func<HotkeyKind, Task<HotkeySpec?>> record, Action<Settings> apply)
+    public SettingsWindow(Settings current, Func<HotkeyKind, Task<HotkeySpec?>> record, Func<Settings, bool> apply)
     {
         InitializeComponent();
         _draft = current;
@@ -195,7 +195,7 @@ public sealed partial class SettingsWindow : Window
 
     private void Save_Click(object sender, RoutedEventArgs e)
     {
-        _apply(_draft); // App 落盘 + 全局应用（ApplySettings 内 SetLocale 设语言终值）
+        _apply(_draft); // 返回值为落盘成败：失败已由 AppErrors 气泡提示，窗口照常关闭
         _saved = true;  // 必须在 Close 前：Closed 事件据此刻断是否恢复预览语言
         Close();
     }
