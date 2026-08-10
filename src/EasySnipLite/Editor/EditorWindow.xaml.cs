@@ -7,17 +7,18 @@ using System.Windows.Media.Imaging;
 using EasySnipLite.Core.ClipboardServices;
 using EasySnipLite.Core.Imaging;
 using EasySnipLite.Editor.Models;
+using EasySnipLite.Localization;
 
 namespace EasySnipLite.Editor;
 
 /// <summary>表情面板数据源（ItemsControl 绑定用）。</summary>
 public sealed class EmojiPalette
 {
-    public string[] Smile => EmojiCatalog.Categories[0].Emojis;
-    public string[] Gesture => EmojiCatalog.Categories[1].Emojis;
-    public string[] Animal => EmojiCatalog.Categories[2].Emojis;
-    public string[] Food => EmojiCatalog.Categories[3].Emojis;
-    public string[] Object => EmojiCatalog.Categories[4].Emojis;
+    public string[] Smile => EmojiCatalog.Categories[0];
+    public string[] Gesture => EmojiCatalog.Categories[1];
+    public string[] Animal => EmojiCatalog.Categories[2];
+    public string[] Food => EmojiCatalog.Categories[3];
+    public string[] Object => EmojiCatalog.Categories[4];
 }
 
 /// <summary>
@@ -54,6 +55,45 @@ public partial class EditorWindow : Window
             BtnSelection, BtnRect, BtnEllipse, BtnArrow, BtnFreehand,
             BtnHighlighter, BtnMosaic, BtnText, BtnEmoji,
         ];
+
+        Localize();
+    }
+
+    /// <summary>从资源应用全部本地化字符串（模态窗口，构造时调用一次）。</summary>
+    private void Localize()
+    {
+        Title = AppResources.EditorTitle;
+        BtnSelection.Content = AppResources.ToolSelection;
+        BtnRect.Content = AppResources.ToolRectangle;
+        BtnEllipse.Content = AppResources.ToolEllipse;
+        BtnArrow.Content = AppResources.ToolArrow;
+        BtnFreehand.Content = AppResources.ToolFreehand;
+        BtnHighlighter.Content = AppResources.ToolHighlighter;
+        BtnMosaic.Content = AppResources.ToolMosaic;
+        BtnText.Content = AppResources.ToolText;
+        BtnEmoji.Content = AppResources.ToolEmoji;
+        ColorRed.ToolTip = AppResources.ColorRed;
+        ColorOrange.ToolTip = AppResources.ColorOrange;
+        ColorYellow.ToolTip = AppResources.ColorYellow;
+        ColorGreen.ToolTip = AppResources.ColorGreen;
+        ColorBlue.ToolTip = AppResources.ColorBlue;
+        ColorPurple.ToolTip = AppResources.ColorPurple;
+        ColorBlack.ToolTip = AppResources.ColorBlack;
+        ColorWhite.ToolTip = AppResources.ColorWhite;
+        StrokeWidthCombo.ToolTip = AppResources.StrokeWidth;
+        BtnUndo.Content = AppResources.Undo;
+        BtnRedo.Content = AppResources.Redo;
+        BtnDelete.Content = AppResources.Delete;
+        BtnCopy.Content = AppResources.ActionCopy;
+        BtnSave.Content = AppResources.ActionSave;
+        BtnPin.Content = AppResources.PinToScreen;
+        BtnComplete.Content = AppResources.Complete;
+        BtnComplete.ToolTip = AppResources.TtComplete;
+        TabSmile.Header = AppResources.EmojiCategorySmile;
+        TabGesture.Header = AppResources.EmojiCategoryGesture;
+        TabAnimal.Header = AppResources.EmojiCategoryAnimal;
+        TabFood.Header = AppResources.EmojiCategoryFood;
+        TabObject.Header = AppResources.EmojiCategoryObject;
     }
 
     private void OnLoaded(object sender, RoutedEventArgs e)
@@ -134,7 +174,7 @@ public partial class EditorWindow : Window
         }
         catch (Exception ex)
         {
-            MessageBox.Show(this, $"保存失败：{ex.Message}", "EasySnipLite", MessageBoxButton.OK, MessageBoxImage.Error);
+            MessageBox.Show(this, string.Format(AppResources.SaveFailed, ex.Message), "EasySnipLite", MessageBoxButton.OK, MessageBoxImage.Error);
         }
     }
 
@@ -149,7 +189,7 @@ public partial class EditorWindow : Window
         }
         catch (Exception ex)
         {
-            MessageBox.Show(this, $"贴屏失败：{ex.Message}", "EasySnipLite", MessageBoxButton.OK, MessageBoxImage.Error);
+            MessageBox.Show(this, string.Format(AppResources.PinFailed, ex.Message), "EasySnipLite", MessageBoxButton.OK, MessageBoxImage.Error);
         }
     }
 
@@ -234,7 +274,7 @@ public partial class EditorWindow : Window
         }
         catch (Exception ex)
         {
-            MessageBox.Show(this, $"复制失败：{ex.Message}", "EasySnipLite", MessageBoxButton.OK, MessageBoxImage.Error);
+            MessageBox.Show(this, string.Format(AppResources.CopyFailed, ex.Message), "EasySnipLite", MessageBoxButton.OK, MessageBoxImage.Error);
         }
     }
 
