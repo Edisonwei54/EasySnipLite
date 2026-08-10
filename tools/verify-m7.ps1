@@ -99,6 +99,13 @@ $overlayAfter = $winsAfter | Where-Object { $_ -match '^[0-9]+\|1\|EasySnipLite$
 if ($overlayAfter.Count -gt 0) { Log 'FAIL: overlay still open after Enter'; Stop-Process -Id $proc.Id -Force; exit 1 }
 Log 'OK: overlay closed after Enter'
 
+# 5b. since M3, Enter opens the editor; press Enter again (Complete = copy + close)
+[V.Native]::keybd_event(0x0D, 0, 0, [UIntPtr]::Zero)
+[V.Native]::keybd_event(0x0D, 0, $KEYUP, [UIntPtr]::Zero)
+Start-Sleep -Seconds 1
+if ($proc.HasExited) { Log "FAIL: app crashed after Complete code=$($proc.ExitCode)"; exit 1 }
+Log 'OK: Complete copied and closed editor'
+
 # 6. clean run must NOT create error.log
 if (Test-Path $errorLog) { Log 'FAIL: error.log created on clean run'; Stop-Process -Id $proc.Id -Force; exit 1 }
 Log 'OK: no error.log on clean run'
