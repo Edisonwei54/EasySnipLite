@@ -19,8 +19,9 @@ public partial class App : Application
     private static readonly TimeSpan ChordWindow = TimeSpan.FromMilliseconds(300);
 
     private KeyboardHookService? _hook;
-    private ChordDetector? _chord;
-    private ComboDetector? _combo;
+    private ChordDetector? _chord;             // 截图热键（双击时序）
+    private ComboDetector? _screenshotCombo;   // 截图热键（单击组合，与 _chord 互斥其一）
+    private ComboDetector? _passthroughCombo;  // 穿透热键（单击组合）
     private SelectionSession? _session;
     private TrayIconService? _tray;
     private Mutex? _mutex; // 单实例，持有引用防 GC
@@ -79,13 +80,22 @@ public partial class App : Application
         }
     }
 
-    /// <summary>按当前设置构建两个热键探测器。</summary>
+    /// <summary>按当前设置构建两个热键探测器（截图按 Kind 派发 chord/combo 其一）。</summary>
     private void BuildDetectors()
     {
         var shot = _settings.ResolvedScreenshotHotkey;
-        _chord = new ChordDetector(ChordWindow, shot.VirtualKey, shot.Modifiers);
+        if (shot.Kind == HotkeyKind.Chord)
+        {
+            _chord = new ChordDetector(ChordWindow, shot.VirtualKey, shot.Modifiers);
+            _screenshotCombo = null;
+        }
+        else
+        {
+            _chord = null;
+            _screenshotCombo = new ComboDetector(shot.VirtualKey, shot.Modifiers);
+        }
         var pass = _settings.ResolvedPassthroughHotkey;
-        _combo = new ComboDetector(pass.VirtualKey, pass.Modifiers);
+        _passthroughCombo = new ComboDetector(pass.VirtualKey, pass.Modifiers);
     }
 
     private void RebuildTray()
@@ -95,7 +105,7 @@ public partial class App : Application
         _tray.Rebuild(hotkeyText);
     }
 
-    /// <summary>钩子线程事件：录制优先，其次查表分发（截图 chord / 穿透 combo）。</summary>
+    /// <summary>钩子线程事件：录制优先，其次查表分发（截图 chord / 截图 combo / 穿透 combo）。</summary>
     private void OnKey(KeyEvent evt)
     {
         if (_recorder is not null)
@@ -109,7 +119,12 @@ public partial class App : Application
             Dispatcher.BeginInvoke(StartCapture);
             return;
         }
-        if (_combo is not null && _combo.HandleKey(evt))
+        if (_screenshotCombo is not null && _screenshotCombo.HandleKey(evt))
+        {
+            Dispatcher.BeginInvoke(StartCapture);
+            return;
+        }
+        if (_passthroughCombo is not null && _passthroughCombo.HandleKey(evt))
         {
             Dispatcher.BeginInvoke(TogglePinPassthrough);
         }
