@@ -37,13 +37,13 @@ public sealed class HotkeyRecorder
 
         if (_mode == HotkeyKind.Combo)
         {
-            if (e.Type != KeyEventType.KeyDown || IsModifierKey(e.VirtualKey)) return;
+            if (e.Type != KeyEventType.KeyDown || ModifierKey.IsModifier(e.VirtualKey)) return;
             Recorded?.Invoke(new HotkeySpec(HotkeyKind.Combo, ModsOf(e), e.VirtualKey));
             return;
         }
 
         // Chord 模式：只看非修饰键 KeyUp
-        if (e.Type != KeyEventType.KeyUp || IsModifierKey(e.VirtualKey)) return;
+        if (e.Type != KeyEventType.KeyUp || ModifierKey.IsModifier(e.VirtualKey)) return;
         var mods = ModsOf(e);
         if (!_hasFirst)
         {
@@ -75,7 +75,4 @@ public sealed class HotkeyRecorder
         if (e.AltDown) m |= HotkeyModifiers.Alt;
         return m;
     }
-
-    private static bool IsModifierKey(int vk) =>
-        vk is Win32.VK_CONTROL or Win32.VK_SHIFT or Win32.VK_MENU;
 }

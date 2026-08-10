@@ -119,8 +119,8 @@
 
 **踩坑记录**：无（subagent 流程全程审查通过，无新增踩坑）。
 
-### M6 设置+i18n（2026-08-10 本次；单测 167/167 全绿；手工 E2E 待终审后与用户执行；分支 feature/m6-settings-i18n）
-**交付**：设置窗口（托盘「设置」入口）：常规页（语言三选/保存目录/滚轮步长）+ 快捷键页（截图/穿透双热键录制：支持和弦与单键组合、冲突拒绝、Esc 取消）+ 语言即时预览；三语 resx（英/简/繁，72 键）运行时切换（CurrentUICulture + 动态重建托盘/贴屏菜单，已打开窗口即时变语言）；settings.json 持久化（原子写：临时文件 + 替换，损坏/缺失回退默认）；开机自启（注册表 HKCU Run 键，启动时按设置补写/删除同步）。**单测 167/167 全绿**（M5 121 基础上新增：ComboDetector 6 / HotkeyRecorder 8 / HotkeyFormat 6 / LocaleService 5 / SettingsStore 7，ChordDetector 与 PinMath 同步扩展用例）。
+### M6 设置+i18n（2026-08-10 本次；单测 171/171 全绿；手工 E2E 待终审后与用户执行；分支 feature/m6-settings-i18n）
+**交付**：设置窗口（托盘「设置」入口）：常规页（语言三选/保存目录/滚轮步长）+ 快捷键页（截图/穿透双热键录制：支持和弦与单键组合、冲突拒绝、Esc 取消）+ 语言即时预览；三语 resx（英/简/繁，72 键）运行时切换（CurrentUICulture + 动态重建托盘/贴屏菜单，已打开窗口即时变语言）；settings.json 持久化（原子写：临时文件 + 替换，损坏/缺失回退默认）；开机自启（注册表 HKCU Run 键，启动时按设置补写/删除同步）。**单测 171/171 全绿**（M5 121 基础上新增：ComboDetector 6 / HotkeyRecorder 11 / HotkeyFormat 6 / LocaleService 5 / SettingsStore 8，ChordDetector 与 PinMath 同步扩展用例）。
 
 **新增文件**：
 - `Core/Settings/HotkeySpec.cs` — 热键规格（HotkeyKind/HotkeyModifiers/HotkeySpec record，全计划类型一致）
@@ -143,13 +143,14 @@
 3. **WindowsDesktop SDK 隐式 using 不含 System.IO**：`SettingsStore` 直接用 File/Path/Directory 编译报「当前上下文中不存在」——WPF 项目默认隐式 using 只覆盖基础集，需显式 `using System.IO;`。
 4. **录制未完成关窗口会吞全局热键**：设置窗口打开中开始录制（await 挂起）→ 用户直接点 X/保存/取消/重置关窗 → `_settingsWindowOpen=false` 但 `_recorder` 仍非空 → OnKey 先走录制分支吞掉所有按键（截图/穿透全失效）。App 在 ShowDialog 返回后检查 `_recorder` 并清理（置空 + `_recordTcs.TrySetResult(null)` 完成挂起 await）。
 5. **语言即时预览需临时切换 CurrentUICulture**：resx 生成的 AppResources 属性按 `CurrentUICulture` 动态解析，仅改 `_draft` 窗口文本纹丝不动——预览时临时 `CurrentUICulture = ResolveCulture(...)` 再 Localize（不广播）；保存路径 ApplySettings 已 SetLocale 终值，未保存关闭（X/取消/重置）由 Closed 事件恢复初始语言。
+6. **低级键盘钩子对修饰键报左右专用虚拟键码（VK_LCONTROL 0xA2 等），热键录制 IsModifierKey 只认通用码（0x10/0x11/0x12）导致修饰键被当目标键录制（组合键一按即结束/穿透热键失效/冲突误判）**——已统一识别 0xA0-0xA5（新增 `Core/Settings/ModifierKey.cs`），且 `Settings.ValidSpec` 拒绝修饰键码作目标键（防御已污染的 settings.json 回退默认）。
 
 ## 四、接下来要做什么
 
 | 里程碑 | 内容 | 验证方式 |
 |--------|------|----------|
 | **M7 打磨+发布**（下一个） | 边界处理、错误提示、单文件 publish 冒烟、README | 冒烟测试 |
-| M6 设置+i18n | 快捷键录制、语言/保存目录/滚轮步长设置、三语切换、开机自启（注册表 Run） | ✅ 已完成（单测 167/167；手工 E2E 待终审执行） |
+| M6 设置+i18n | 快捷键录制、语言/保存目录/滚轮步长设置、三语切换、开机自启（注册表 Run） | ✅ 已完成（单测 171/171；手工 E2E 待终审执行） |
 
 ## 五、总计划（架构与流程）
 

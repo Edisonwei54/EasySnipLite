@@ -46,5 +46,7 @@ public sealed record Settings(
         ValidSpec(PassthroughHotkey));
 
     private static HotkeySpec? ValidSpec(HotkeySpec? spec) =>
-        spec is { VirtualKey: > 0 } && Enum.IsDefined(spec.Kind) ? spec : null;
+        spec is { VirtualKey: > 0 } && Enum.IsDefined(spec.Kind) && !ModifierKey.IsModifier(spec.VirtualKey)
+            ? spec
+            : null;
 }

@@ -75,6 +75,17 @@ public class SettingsStoreTests
     }
 
     [Fact]
+    public void ModifierKeyAsTargetKey_NormalizesToDefault()
+    {
+        var path = TempPath();
+        File.WriteAllText(path, """{"PassthroughHotkey":{"Kind":1,"Modifiers":1,"VirtualKey":162}}"""); // 162=0xA2 LeftCtrl
+
+        var loaded = SettingsStore.Load(path);
+
+        Assert.Equal(HotkeySpec.DefaultPassthrough, loaded.ResolvedPassthroughHotkey);
+    }
+
+    [Fact]
     public void ZoomFactor_MapsPresets()
     {
         Assert.Equal(1.05, new Settings(ZoomStep: ZoomStepPreset.Small).ZoomFactor);

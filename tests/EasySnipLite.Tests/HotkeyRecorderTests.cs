@@ -136,4 +136,51 @@ public class HotkeyRecorderTests
 
         Assert.True(cancelled);
     }
+
+    [Fact]
+    public void ComboMode_LeftCtrlModifierDown_IsIgnored_NotRecorded()
+    {
+        var recorder = new HotkeyRecorder(HotkeyKind.Combo, Window);
+        var fired = false;
+        recorder.Recorded += _ => fired = true;
+
+        recorder.HandleKey(Down(0xA2, ctrl: true)); // VK_LCONTROL
+
+        Assert.False(fired); // 修饰键不应成为目标键
+    }
+
+    [Fact]
+    public void ComboMode_LeftModifierCodes_PlusTarget_RecordsTargetWithModifiers()
+    {
+        var recorder = new HotkeyRecorder(HotkeyKind.Combo, Window);
+        HotkeySpec? recorded = null;
+        var count = 0;
+        recorder.Recorded += spec => { recorded = spec; count++; };
+
+        recorder.HandleKey(Down(0xA2, ctrl: true));              // VK_LCONTROL
+        recorder.HandleKey(Down(0xA0, ctrl: true, shift: true)); // VK_LSHIFT
+        recorder.HandleKey(Down(VkP, ctrl: true, shift: true));
+
+        Assert.Equal(1, count); // 修饰键按下不得触发录制，仅目标键记录一次
+        Assert.NotNull(recorded);
+        Assert.Equal(HotkeyModifiers.Ctrl | HotkeyModifiers.Shift, recorded.Modifiers);
+        Assert.Equal(VkP, recorded.VirtualKey);
+    }
+
+    [Fact]
+    public void ChordMode_ModifierRelease_DoesNotBecomeCandidate()
+    {
+        var recorder = new HotkeyRecorder(HotkeyKind.Chord, Window);
+        HotkeySpec? recorded = null;
+        recorder.Recorded += spec => recorded = spec;
+        var t0 = new DateTime(2026, 1, 1, 0, 0, 0, DateTimeKind.Utc);
+
+        recorder.HandleKey(Up(VkSpace, ctrl: true, t: t0));                            // 第一次 tap
+        recorder.HandleKey(Up(0xA2, t: t0 + TimeSpan.FromMilliseconds(50)));           // VK_LCONTROL KeyUp: 不得成为候选
+        recorder.HandleKey(Up(VkSpace, ctrl: true, t: t0 + TimeSpan.FromMilliseconds(80))); // 第二次 tap
+
+        Assert.NotNull(recorded);
+        Assert.Equal(HotkeyModifiers.Ctrl, recorded.Modifiers);
+        Assert.Equal(VkSpace, recorded.VirtualKey);
+    }
 }
