@@ -47,6 +47,11 @@ public sealed record Settings(
 
     private static HotkeySpec? ValidSpec(HotkeySpec? spec) =>
         spec is { VirtualKey: > 0 } && Enum.IsDefined(spec.Kind) && !ModifierKey.IsModifier(spec.VirtualKey)
+        && ValidModifiers(spec.Modifiers)
             ? spec
             : null;
+
+    /// <summary>Flags 枚举不能用 Enum.IsDefined（组合值如 Ctrl|Shift=3 未定义），必须位掩码校验。</summary>
+    private static bool ValidModifiers(HotkeyModifiers m) =>
+        (m & ~(HotkeyModifiers.Ctrl | HotkeyModifiers.Shift | HotkeyModifiers.Alt)) == 0;
 }
