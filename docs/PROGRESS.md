@@ -154,11 +154,12 @@
 - `tools/verify-m7.ps1` — 单文件发布冒烟脚本（纯 ASCII）
 - `tests/EasySnipLite.Tests/AppErrorsTests.cs`（4 单测）、`ImageFileTests.cs`（2 单测）
 
-**修改**：`AppResources.resx`(×3) 新增 4 键（AppStarted/SettingsSaveFailed/UnhandledNotify/UnhandledErrorBody）、`Tray/TrayIconService.cs`（ShowBalloon 气泡）、`App.xaml.cs`（三异常钩子/启动气泡/保存失败气泡/ApplySettings 返回 bool）、`Settings/SettingsWindow.xaml(.cs)`（ApplySettings Func 签名）、`Core/Settings/Settings.cs`（修饰键位掩码校验）、`Localization/LocaleService.cs`（死事件移除）、`Core/Imaging/ImageFile.cs`（WriteProbe 可写性探测）、检测器/录制器补 5 测试、`EasySnipLite.csproj`（0.1.0→1.0.0）、`README.md`（发布小节+里程碑表）、`docs/PROGRESS.md`、`CLAUDE.md`、`1.md`
+**修改**：`AppResources.resx`(×3) 新增 4 键（AppStarted/SettingsSaveFailed/UnhandledNotify/UnhandledErrorBody）、`Tray/TrayIconService.cs`（ShowBalloon 气泡）、`App.xaml.cs`（三异常钩子/启动气泡/保存失败气泡/ApplySettings 返回 bool）、`Settings/SettingsWindow.xaml.cs`（ApplySettings Func 签名）、`Core/Settings/Settings.cs`（修饰键位掩码校验）、`Localization/LocaleService.cs`（死事件移除）、`Core/Imaging/ImageFile.cs`（WriteProbe 可写性探测）、检测器/录制器补 5 测试、`EasySnipLite.csproj`（0.1.0→1.0.0）、`README.md`（发布小节+里程碑表）、`docs/PROGRESS.md`、`CLAUDE.md`、`1.md`
 
 **踩坑记录**：
 1. **verify-m7 脚本初稿剪贴板步骤陈旧**：Enter 直接复制是 M1 时代流程，M3+ 后 Enter 打开标注编辑器——脚本首次运行 FAIL（剪贴板无图），按 verify-m3 场景 C 加 5b 步（Enter 二次 = Complete 复制+关闭）后 PASSED。
-2. 无其他新增踩坑（subagent 流程全程审查通过）。
+2. **启动期异常必须走 Fatal，不能静默置 Handled**：DispatcherUnhandledException 无条件 Notify + e.Handled=true 时，OnStartup 期异常（如 RegistryAutoStart.Sync/钩子启动失败）会被 Dispatcher 吞掉——AppDomain 钩子收不到已处理异常 → 无托盘无气泡无热键的静默进程占住单实例 mutex，后续启动全部「已在运行」退出（僵尸进程）。终审修复 ae77cd8：`_startupComplete` 标志在 OnStartup 末尾置位，启动期异常改走 `AppErrors.Fatal`（弹窗+退出）。
+3. 无其他新增踩坑（subagent 流程全程审查通过）。
 
 ## 四、接下来要做什么
 
@@ -172,4 +173,4 @@
 
 - **架构**：App（装配/托盘/i18n/设置）· Core（Win32/热键/捕获/剪贴板）· Selection（遮罩框选）· Editor（标注）· Stitching（长截图）· Pin（贴屏）· Tests（xUnit 纯逻辑单测）。零第三方运行时依赖。
 - **流程**：TDD 先行纯逻辑（已用于 ChordDetector）；每里程碑自动化/手工验证通过后 git commit；PR 由用户手动合并，合并后清除本地分支（远程分支保留）；发布验证：单文件 publish 冒烟已加入里程碑验证（verify-m7.ps1：热键→框选→剪贴板→无异常日志）。
-- 完整设计：`docs/superpowers/specs/2026-08-07-easysniplite-design.md`；实施计划：`C:\Users\situweihao\.claude\plans\windows-delegated-kahan.md`
+- 完整设计：`docs/superpowers/specs/2026-08-07-easysniplite-design.md`；各里程碑 spec/plan 均在仓库内 `docs/superpowers/specs/` 与 `docs/superpowers/plans/`（早期总计划 `C:\Users\situweihao\.claude\plans\windows-delegated-kahan.md` 为历史存档）

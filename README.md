@@ -53,7 +53,7 @@ dotnet test EasySnipLite.slnx
 
 ```
 EasySnipLite.slnx
-├─ src/EasySnipLite/        WPF 主程序（Core / Selection / Editor / Settings / Pin / Tray / Localization）
+├─ src/EasySnipLite/        WPF 主程序（Core / Selection / Editor / Settings / Pin / Tray / Localization；Stitching 长截图存档）
 ├─ tests/EasySnipLite.Tests/ xUnit 单测（拼接对齐、撤销栈、热键时序、贴屏换算等纯逻辑）
 ├─ tools/                   端到端验证脚本
 └─ docs/                    设计文档与里程碑进度
