@@ -76,4 +76,8 @@
   <data name="SaveBtn" xml:space="preserve"><value>Save</value></data>
   <data name="CancelBtn" xml:space="preserve"><value>Cancel</value></data>
   <data name="ResetBtn" xml:space="preserve"><value>Reset to Defaults</value></data>
+  <data name="AppStarted" xml:space="preserve"><value>EasySnipLite is ready — running in the system tray.</value></data>
+  <data name="SettingsSaveFailed" xml:space="preserve"><value>Failed to save settings. They still apply for this session and will be retried on next launch.</value></data>
+  <data name="UnhandledNotify" xml:space="preserve"><value>An internal error occurred. Details were written to the log.</value></data>
+  <data name="UnhandledErrorBody" xml:space="preserve"><value>An unexpected error occurred and the app will exit. Details were written to the log.</value></data>
 </root>

@@ -89,5 +89,11 @@ public static class AppResources
     public static string CancelBtn => Get("CancelBtn");
     public static string ResetBtn => Get("ResetBtn");
 
+    // 错误与启动提示（M7）
+    public static string AppStarted => Get("AppStarted");
+    public static string SettingsSaveFailed => Get("SettingsSaveFailed");
+    public static string UnhandledNotify => Get("UnhandledNotify");
+    public static string UnhandledErrorBody => Get("UnhandledErrorBody");
+
     private static string Get(string key) => Manager.GetString(key) ?? key;
 }

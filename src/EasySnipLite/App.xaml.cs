@@ -2,6 +2,7 @@ using System.Threading;
 using System.Windows;
 using System.Windows.Media.Imaging;
 using System.Windows.Threading;
+using EasySnipLite.Core.Diagnostics;
 using EasySnipLite.Core.Hotkeys;
 using EasySnipLite.Core.Imaging;
 using EasySnipLite.Core.Settings;
@@ -27,6 +28,7 @@ public partial class App : Application
     private Mutex? _mutex; // 单实例，持有引用防 GC
     private readonly List<PinWindow> _pins = new();
     private Settings _settings = new();
+    private bool _startupComplete; // 启动期异常走 Fatal（否则成静默僵尸进程）
 
     // 录制状态：录制期间自身热键只喂 recorder；设置窗口打开期间屏蔽自身热键
     // volatile：UI 线程写、钩子线程读（x64 下实际良性，一字保险）
@@ -37,6 +39,28 @@ public partial class App : Application
     protected override void OnStartup(StartupEventArgs e)
     {
         base.OnStartup(e);
+
+        // 错误兜底（M7）：任何初始化/运行期未捕获异常都有日志+提示，注册于所有初始化之前
+        // 注：lambda 参数名 e 合法遮蔽 OnStartup 的 StartupEventArgs e（C# 允许，阴影仅在 lambda 作用域内）
+        DispatcherUnhandledException += (_, e) =>
+        {
+            if (!_startupComplete)
+            {
+                // 启动期异常：静默置 Handled 会成无托盘无热键的僵尸进程（AppDomain 钩子收不到已处理异常）
+                AppErrors.Fatal(e.Exception, AppResources.UnhandledErrorBody);
+                e.Handled = true;
+                return;
+            }
+            AppErrors.Notify(e.Exception, AppResources.UnhandledNotify); // 非致命：气泡+日志，继续运行
+            e.Handled = true;
+        };
+        AppDomain.CurrentDomain.UnhandledException += (_, e) =>
+            AppErrors.Fatal(e.ExceptionObject as Exception ?? new Exception("Unknown error"), AppResources.UnhandledErrorBody);
+        TaskScheduler.UnobservedTaskException += (_, e) =>
+        {
+            AppErrors.Log(e.Exception); // Task 内异常：仅日志，防静默吞
+            e.SetObserved();
+        };
 
         // 设置加载（M6）：先于单实例检查——单实例提示需按配置语言渲染
         _settings = SettingsStore.Load(SettingsStore.DefaultPath());
@@ -59,11 +83,14 @@ public partial class App : Application
         RegistryAutoStart.Sync(_settings.Autostart); // 启动同步：设置开但注册表缺失则补写
         BuildDetectors();
 
-        _tray = new TrayIconService();
-        _tray.CaptureRequested += StartCapture;
-        _tray.SettingsRequested += ShowSettings;
-        _tray.ExitRequested += Shutdown;
+        var tray = new TrayIconService();
+        _tray = tray;
+        AppErrors.TrayNotify = tray.ShowBalloon; // 错误气泡通道（托盘就绪后即可用）
+        tray.CaptureRequested += StartCapture;
+        tray.SettingsRequested += ShowSettings;
+        tray.ExitRequested += Shutdown;
         RebuildTray();
+        tray.ShowBalloon(AppResources.AppStarted); // 启动成功气泡（总是显示，含开机自启）
 
         _hook = new KeyboardHookService();
         _hook.KeyReceived += OnKey;
@@ -78,6 +105,8 @@ public partial class App : Application
         {
             Dispatcher.BeginInvoke(() => OpenStitch(new Int32Rect(x, y, w, h), autoCopy: true));
         }
+
+        _startupComplete = true;
     }
 
     /// <summary>按当前设置构建两个热键探测器（截图按 Kind 派发 chord/combo 其一）。</summary>
@@ -195,17 +224,23 @@ public partial class App : Application
     }
 
     /// <summary>保存回调：落盘 + 全局应用（热键/托盘/贴屏步长/语言/自启/保存目录）。</summary>
-    private void ApplySettings(Settings next)
+    private bool ApplySettings(Settings next)
     {
         _settings = next;
+        bool saved = true;
         try { SettingsStore.Save(SettingsStore.DefaultPath(), next); }
-        catch { /* 磁盘满/只读/文件被锁等：与 RegistryAutoStart 一致静默忽略；内存态已更新，下次启动再尝试落盘 */ }
+        catch (Exception ex)
+        {
+            saved = false;
+            AppErrors.Notify(ex, AppResources.SettingsSaveFailed); // 内存态仍更新：本次生效，下次启动重试落盘
+        }
         ImageFile.DefaultSaveDirProvider = () => next.SaveDirectory;
         RegistryAutoStart.Sync(next.Autostart);
         LocaleService.SetLocale(next.Language); // 先切语言再重建托盘：AppResources 动态解析，托盘需按新语言渲染
         BuildDetectors();
         RebuildTray();
         foreach (var pin in _pins) pin.ApplyLocale(next.ZoomFactor);
+        return saved;
     }
 
     private void StartCapture()

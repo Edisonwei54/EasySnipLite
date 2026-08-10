@@ -86,6 +86,17 @@ public class SettingsStoreTests
     }
 
     [Fact]
+    public void InvalidModifierBits_NormalizesToDefault()
+    {
+        var path = TempPath();
+        File.WriteAllText(path, """{"PassthroughHotkey":{"Kind":1,"Modifiers":999,"VirtualKey":80}}"""); // 999 含非法标志位
+
+        var loaded = SettingsStore.Load(path);
+
+        Assert.Equal(HotkeySpec.DefaultPassthrough, loaded.ResolvedPassthroughHotkey);
+    }
+
+    [Fact]
     public void ZoomFactor_MapsPresets()
     {
         Assert.Equal(1.05, new Settings(ZoomStep: ZoomStepPreset.Small).ZoomFactor);

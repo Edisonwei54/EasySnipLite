@@ -61,4 +61,11 @@ public class ComboDetectorTests
         Assert.True(detector.HandleKey(Down(0x41, alt: true)));
         Assert.False(detector.HandleKey(Down(0x41, ctrl: true)));
     }
+
+    [Fact]
+    public void ExtraModifierBeyondDeclared_DoesNotFire()
+    {
+        var detector = Default(); // 声明 Ctrl+Shift
+        Assert.False(detector.HandleKey(Down(VkP, ctrl: true, shift: true, alt: true))); // 多按 Alt：精确匹配拒绝
+    }
 }

@@ -9,6 +9,7 @@ dotnet build EasySnipLite.slnx            # 构建（Debug 输出在 bin/Debug/n
 dotnet test EasySnipLite.slnx             # 运行全部单测（xUnit）
 dotnet test --filter "FullyQualifiedName~ChordDetectorTests"   # 跑指定测试
 powershell -ExecutionPolicy Bypass -File tools/verify-m1.ps1   # M1 端到端验证（热键→框选→剪贴板）
+powershell -ExecutionPolicy Bypass -File tools/verify-m7.ps1   # M7 发布冒烟（publish 单文件→热键→剪贴板）
 dotnet publish src/EasySnipLite -c Release -r win-x64 -o dist  # 单文件发布（M7 冒烟用）
 ```
 
@@ -20,6 +21,7 @@ src/EasySnipLite/          WPF 主程序（net10.0-windows, UseWPF+UseWindowsFor
   Core/Hotkeys/            ChordDetector/ComboDetector（纯逻辑）+ KeyboardHookService（WH_KEYBOARD_LL）+ HotkeyRecorder/HotkeyFormat/ModifierMatch
   Core/Imaging/            ScreenCapture（BitBlt 冻结，物理像素）
   Core/Clipboard/          ClipboardEx（DIB+PNG 双格式，命名空间 ClipboardServices）
+  Core/Diagnostics/        AppErrors 错误兜底（日志/气泡/致命弹窗）
   Core/Settings/           HotkeySpec + Settings 模型 + SettingsStore（settings.json 原子持久化）+ RegistryAutoStart（开机自启）+ ModifierKey（修饰键码判定）
   Localization/            AppResources.resx 三语（英/简/繁）+ LocaleService（运行时切换）
   Selection/               SelectionSession（会话协调）+ RegionSelectionWindow（全屏遮罩）
@@ -52,4 +54,5 @@ docs/                      PROGRESS.md（里程碑进度）、superpowers/specs/
 - M4 滚动长截图：实现 + 单测已存档（PR #4 合并进 main），因 E2E 阻塞已决定**跳过**；托盘「滚动长截图」入口已由 M5 移除
 - M5 贴屏+托盘 ✅（单实例 Mutex/贴屏窗口/编辑器「贴到屏幕」入口/Ctrl+Shift+P 穿透热键）
 - M6 设置+i18n ✅（设置窗口/截图+穿透双热键录制（截图单击/双击自动识别）/三语 resx 即时切换/settings.json 持久化/开机自启；单测 176/176 全绿，手工 E2E 已验证，PR #6 已合并）
-- M7 打磨+发布 → 下一个里程碑（边界处理、错误提示、单文件 publish 冒烟），见 docs/PROGRESS.md
+- M7 打磨+发布 ✅（错误处理管线/启动+保存失败气泡/边界小修/单文件 publish 冒烟/版本 1.0.0；单测 188/188 全绿，verify-m7 通过，PR #7 待用户合并）
+- 全部里程碑完成，进入维护期（缺陷修复/新功能建议）

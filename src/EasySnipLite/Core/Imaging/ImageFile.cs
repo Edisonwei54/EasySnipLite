@@ -36,32 +36,32 @@ public static class ImageFile
         encoder.Save(stream);
     }
 
+    /// <summary>可写性探测覆盖（测试注入）：null = 真实 IO 探测（CreateDirectory + 临时文件写删）。</summary>
+    public static Func<string, bool>? WriteProbe { get; set; }
+
     public static string DefaultSaveDir()
     {
         var configured = DefaultSaveDirProvider?.Invoke();
-        if (!string.IsNullOrEmpty(configured))
-        {
-            try
-            {
-                Directory.CreateDirectory(configured);
-                return configured;
-            }
-            catch
-            {
-                // 设置的目录不可写 → 回退默认
-            }
-        }
+        if (!string.IsNullOrEmpty(configured) && Writable(configured)) return configured;
         var pictures = Environment.GetFolderPath(Environment.SpecialFolder.MyPictures);
         var dir = Path.Combine(pictures, "EasySnipLite");
+        if (Writable(dir)) return dir;
+        return pictures; // 最终兜底：保存失败由 SaveFailed 提示（编辑器的用户可见错误路径）
+    }
+
+    /// <summary>候选目录可用性：CreateDirectory 兜底 + 可写性探测（T11-M1：已存在只读目录 CreateDirectory 不抛异常）。</summary>
+    private static bool Writable(string dir)
+    {
+        if (WriteProbe is { } probe) return probe(dir);
         try
         {
             Directory.CreateDirectory(dir);
-            return dir;
+            var probeFile = Path.Combine(dir, ".writable-probe");
+            File.WriteAllText(probeFile, "");
+            File.Delete(probeFile);
+            return true;
         }
-        catch
-        {
-            return pictures;
-        }
+        catch { return false; }
     }
 
     public static string DefaultFileName() =>
