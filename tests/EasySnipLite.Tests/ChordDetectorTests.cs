@@ -1,4 +1,5 @@
 using EasySnipLite.Core.Hotkeys;
+using EasySnipLite.Core.Settings;
 
 namespace EasySnipLite.Tests;
 
@@ -9,13 +10,13 @@ public class ChordDetectorTests
     private static readonly TimeSpan Window = TimeSpan.FromMilliseconds(300);
 
     private static KeyEvent SpaceUp(bool ctrl, DateTime t) =>
-        new(KeyEventType.KeyUp, VkSpace, ctrl, false, t);
+        new(KeyEventType.KeyUp, VkSpace, ctrl, false, false, t);
 
     private static KeyEvent SpaceDown(DateTime t) =>
-        new(KeyEventType.KeyDown, VkSpace, true, false, t);
+        new(KeyEventType.KeyDown, VkSpace, true, false, false, t);
 
     private static KeyEvent OtherUp(DateTime t) =>
-        new(KeyEventType.KeyUp, VkShift, true, false, t);
+        new(KeyEventType.KeyUp, VkShift, true, false, false, t);
 
     [Fact]
     public void CtrlHeld_DoubleSpaceWithinWindow_Fires()
@@ -93,5 +94,56 @@ public class ChordDetectorTests
         Assert.False(detector.HandleKey(SpaceUp(true, t0)));
         Assert.False(detector.HandleKey(SpaceDown(t0 + TimeSpan.FromMilliseconds(80))));
         Assert.True(detector.HandleKey(SpaceUp(true, t0 + TimeSpan.FromMilliseconds(100))));
+    }
+
+    [Fact]
+    public void AltModifier_DoubleSpaceWithinWindow_Fires()
+    {
+        var detector = new ChordDetector(Window, VkSpace, HotkeyModifiers.Alt);
+        var t0 = new DateTime(2026, 1, 1, 0, 0, 0, DateTimeKind.Utc);
+
+        Assert.False(detector.HandleKey(new(KeyEventType.KeyUp, VkSpace, false, false, true, t0)));
+        Assert.True(detector.HandleKey(new(KeyEventType.KeyUp, VkSpace, false, false, true, t0 + TimeSpan.FromMilliseconds(100))));
+    }
+
+    [Fact]
+    public void CtrlShiftModifier_BothRequired_Fires()
+    {
+        var detector = new ChordDetector(Window, VkSpace, HotkeyModifiers.Ctrl | HotkeyModifiers.Shift);
+        var t0 = new DateTime(2026, 1, 1, 0, 0, 0, DateTimeKind.Utc);
+
+        Assert.False(detector.HandleKey(new(KeyEventType.KeyUp, VkSpace, true, true, false, t0)));
+        Assert.True(detector.HandleKey(new(KeyEventType.KeyUp, VkSpace, true, true, false, t0 + TimeSpan.FromMilliseconds(100))));
+    }
+
+    [Fact]
+    public void UndeclaredModifierDown_DoesNotFire()
+    {
+        var detector = new ChordDetector(Window, VkSpace, HotkeyModifiers.Ctrl);
+        var t0 = new DateTime(2026, 1, 1, 0, 0, 0, DateTimeKind.Utc);
+
+        Assert.False(detector.HandleKey(new(KeyEventType.KeyUp, VkSpace, true, true, false, t0)));
+        Assert.False(detector.HandleKey(new(KeyEventType.KeyUp, VkSpace, true, true, false, t0 + TimeSpan.FromMilliseconds(100))));
+    }
+
+    [Fact]
+    public void NoModifier_BareDoubleTap_Fires()
+    {
+        var detector = new ChordDetector(Window, VkSpace, HotkeyModifiers.None);
+        var t0 = new DateTime(2026, 1, 1, 0, 0, 0, DateTimeKind.Utc);
+
+        Assert.False(detector.HandleKey(new(KeyEventType.KeyUp, VkSpace, false, false, false, t0)));
+        Assert.True(detector.HandleKey(new(KeyEventType.KeyUp, VkSpace, false, false, false, t0 + TimeSpan.FromMilliseconds(100))));
+    }
+
+    [Fact]
+    public void CustomTargetKey_Fires()
+    {
+        const int vkA = 0x41;
+        var detector = new ChordDetector(Window, vkA, HotkeyModifiers.Ctrl);
+        var t0 = new DateTime(2026, 1, 1, 0, 0, 0, DateTimeKind.Utc);
+
+        Assert.False(detector.HandleKey(new(KeyEventType.KeyUp, vkA, true, false, false, t0)));
+        Assert.True(detector.HandleKey(new(KeyEventType.KeyUp, vkA, true, false, false, t0 + TimeSpan.FromMilliseconds(100))));
     }
 }
