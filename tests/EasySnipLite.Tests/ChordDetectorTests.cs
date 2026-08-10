@@ -146,4 +146,26 @@ public class ChordDetectorTests
         Assert.False(detector.HandleKey(new(KeyEventType.KeyUp, vkA, true, false, false, t0)));
         Assert.True(detector.HandleKey(new(KeyEventType.KeyUp, vkA, true, false, false, t0 + TimeSpan.FromMilliseconds(100))));
     }
+
+    [Fact]
+    public void ModifierMissingOnSecondTap_DoesNotFire_AndDoesNotPolluteTiming()
+    {
+        var detector = new ChordDetector(Window);
+        var t0 = new DateTime(2026, 1, 1, 0, 0, 0, DateTimeKind.Utc);
+
+        Assert.False(detector.HandleKey(SpaceUp(true, t0)));
+        Assert.False(detector.HandleKey(SpaceUp(false, t0 + TimeSpan.FromMilliseconds(100)))); // Ctrl 缺失：不触发
+        Assert.True(detector.HandleKey(SpaceUp(true, t0 + TimeSpan.FromMilliseconds(200))));   // 时序未被污染：与第一击仍在窗口内
+    }
+
+    [Fact]
+    public void InterleavedModifierKeyUp_BetweenTaps_DoesNotPollute()
+    {
+        var detector = new ChordDetector(Window);
+        var t0 = new DateTime(2026, 1, 1, 0, 0, 0, DateTimeKind.Utc);
+
+        Assert.False(detector.HandleKey(SpaceUp(true, t0)));
+        Assert.False(detector.HandleKey(new(KeyEventType.KeyUp, VkShift, true, false, false, t0 + TimeSpan.FromMilliseconds(50)))); // Shift 释放夹杂
+        Assert.True(detector.HandleKey(SpaceUp(true, t0 + TimeSpan.FromMilliseconds(100))));
+    }
 }

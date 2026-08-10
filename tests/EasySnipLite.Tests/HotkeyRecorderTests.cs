@@ -260,4 +260,35 @@ public class HotkeyRecorderTests
 
         Assert.True(cancelled);
     }
+
+    [Fact]
+    public void ComboMode_KeyUp_DoesNotRecordTwice()
+    {
+        var recorder = new HotkeyRecorder(HotkeyKind.Combo, Window);
+        var count = 0;
+        recorder.Recorded += _ => count++;
+
+        recorder.HandleKey(Down(VkCtrl));
+        recorder.HandleKey(Down(VkP, ctrl: true));
+        recorder.HandleKey(Up(VkP, ctrl: true));
+
+        Assert.Equal(1, count); // 仅 KeyDown 记录一次，KeyUp 不重复
+    }
+
+    [Fact]
+    public void Cancel_ThenRecordingWorksAgain()
+    {
+        var recorder = new HotkeyRecorder(HotkeyKind.Combo, Window);
+        var cancelled = false;
+        var recorded = false;
+        recorder.Cancelled += () => cancelled = true;
+        recorder.Recorded += _ => recorded = true;
+
+        recorder.HandleKey(Down(VkEsc));           // 取消
+        recorder.HandleKey(Down(VkCtrl));
+        recorder.HandleKey(Down(VkP, ctrl: true)); // 取消后仍可正常录制
+
+        Assert.True(cancelled);
+        Assert.True(recorded);
+    }
 }
