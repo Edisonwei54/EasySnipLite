@@ -19,7 +19,8 @@ public sealed partial class SettingsWindow : Window
     private Settings _draft;
     private bool _suppressPreview; // 重建下拉项时抑制 SelectionChanged 再入
     // 待确认的录制结果：捕获成功后按钮变「确定」，点击才写入 _draft；再次点本行「录制」=重试覆盖
-    private (HotkeyKind Kind, HotkeySpec Spec, Button Btn, TextBlock Display)? _pending;
+    // 不含 Kind：截图行 autoDetect 可能产出 Combo spec，目标字段由按钮身份（Btn）决定
+    private (HotkeySpec Spec, Button Btn, TextBlock Display)? _pending;
     private readonly CultureInfo _initialCulture; // 语言预览前的初始语言（未保存关闭时恢复）
     private bool _saved; // 已保存：关闭时不再恢复预览语言（ApplySettings 已 SetLocale 终值）
 
@@ -176,14 +177,14 @@ public sealed partial class SettingsWindow : Window
 
         // 成功：显示新键，按钮变「确定」等待确认（在 finally 之后设置，避免被恢复逻辑覆盖）
         display.Text = HotkeyFormat.Format(spec, AppResources.HotkeyDoubleTap);
-        _pending = (kind, spec, btn, display);
+        _pending = (spec, btn, display);
         btn.Content = AppResources.RecordApply;
     }
 
-    /// <summary>确认：把待确认结果写入 _draft，按钮恢复「录制」。</summary>
-    private void CommitPending((HotkeyKind Kind, HotkeySpec Spec, Button Btn, TextBlock Display) p)
+    /// <summary>确认：按按钮身份把待确认结果写入 _draft 对应字段，按钮恢复「录制」。</summary>
+    private void CommitPending((HotkeySpec Spec, Button Btn, TextBlock Display) p)
     {
-        _draft = p.Kind == HotkeyKind.Chord
+        _draft = p.Btn == CaptureRecordBtn
             ? _draft with { ScreenshotHotkey = p.Spec }
             : _draft with { PassthroughHotkey = p.Spec };
         p.Btn.Content = AppResources.RecordHotkey;

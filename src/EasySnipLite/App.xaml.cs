@@ -1,6 +1,7 @@
 using System.Threading;
 using System.Windows;
 using System.Windows.Media.Imaging;
+using System.Windows.Threading;
 using EasySnipLite.Core.Hotkeys;
 using EasySnipLite.Core.Imaging;
 using EasySnipLite.Core.Settings;
@@ -138,12 +139,16 @@ public partial class App : Application
         }
     }
 
-    /// <summary>录制入口：设置录制状态（OnKey 优先喂 recorder），等待 Hook 线程事件，完成后返回 spec（取消=null）。</summary>
-    private async Task<HotkeySpec?> RecordHotkeyAsync(HotkeyKind kind)
+    /// <summary>录制入口：截图热键(autoDetect:单击/双击自动识别)→Chord 录制；穿透热键→Combo 录制。</summary>
+    private Task<HotkeySpec?> RecordHotkeyAsync(HotkeyKind kind) =>
+        RecordHotkeyCore(kind, autoDetect: kind == HotkeyKind.Chord);
+
+    /// <summary>录制核心：设置录制状态（OnKey 优先喂 recorder），等待 Hook 线程事件，完成后返回 spec（取消=null）。</summary>
+    private async Task<HotkeySpec?> RecordHotkeyCore(HotkeyKind kind, bool autoDetect)
     {
         _recordTcs = new TaskCompletionSource<HotkeySpec?>();
         // 先订阅后发布：避免钩子线程事件在字段赋值前到达（无订阅者导致 TCS 永不完成）
-        var recorder = new HotkeyRecorder(kind, ChordWindow);
+        var recorder = new HotkeyRecorder(kind, ChordWindow, autoDetect);
         recorder.Recorded += spec =>
         {
             _recorder = null;
@@ -155,7 +160,23 @@ public partial class App : Application
             _recordTcs.TrySetResult(null);
         };
         _recorder = recorder;
-        return await _recordTcs.Task; // await 续回 UI 线程（ShowDialog 嵌套 Dispatcher 循环）
+
+        // 自动识别：单击在双击窗口到期后由钩子线程定时器敲定为 Combo（与 HandleKey 同线程，无竞态）
+        DispatcherTimer? timer = null;
+        if (autoDetect && _hook?.Dispatcher is { } hookDispatcher)
+        {
+            timer = new DispatcherTimer(DispatcherPriority.Normal, hookDispatcher) { Interval = ChordWindow };
+            timer.Tick += (_, _) => { if (_recorder is { } r) r.HandleTimeout(DateTime.UtcNow); };
+            timer.Start();
+        }
+        try
+        {
+            return await _recordTcs.Task; // await 续回 UI 线程（ShowDialog 嵌套 Dispatcher 循环）
+        }
+        finally
+        {
+            timer?.Stop();
+        }
     }
 
     /// <summary>保存回调：落盘 + 全局应用（热键/托盘/贴屏步长/语言/自启/保存目录）。</summary>

@@ -183,4 +183,81 @@ public class HotkeyRecorderTests
         Assert.Equal(HotkeyModifiers.Ctrl, recorded.Modifiers);
         Assert.Equal(VkSpace, recorded.VirtualKey);
     }
+
+    // ---- 自动识别模式（autoDetect: true，单击/双击均可）----
+
+    [Fact]
+    public void AutoMode_SingleTap_AfterWindow_RecordsCombo()
+    {
+        var recorder = new HotkeyRecorder(HotkeyKind.Chord, Window, autoDetect: true);
+        HotkeySpec? recorded = null;
+        recorder.Recorded += spec => recorded = spec;
+        var t0 = new DateTime(2026, 1, 1, 0, 0, 0, DateTimeKind.Utc);
+
+        recorder.HandleKey(Up(VkSpace, ctrl: true, t: t0));
+        recorder.HandleTimeout(t0 + Window); // 双击窗口到期
+
+        Assert.NotNull(recorded);
+        Assert.Equal(HotkeyKind.Combo, recorded.Kind);
+        Assert.Equal(HotkeyModifiers.Ctrl, recorded.Modifiers);
+        Assert.Equal(VkSpace, recorded.VirtualKey);
+    }
+
+    [Fact]
+    public void AutoMode_TimeoutBeforeWindow_DoesNotRecord()
+    {
+        var recorder = new HotkeyRecorder(HotkeyKind.Chord, Window, autoDetect: true);
+        var fired = false;
+        recorder.Recorded += _ => fired = true;
+        var t0 = new DateTime(2026, 1, 1, 0, 0, 0, DateTimeKind.Utc);
+
+        recorder.HandleKey(Up(VkSpace, ctrl: true, t: t0));
+        recorder.HandleTimeout(t0 + TimeSpan.FromMilliseconds(100)); // 窗口未到
+
+        Assert.False(fired);
+    }
+
+    [Fact]
+    public void AutoMode_DoubleTap_RecordsChord()
+    {
+        var recorder = new HotkeyRecorder(HotkeyKind.Chord, Window, autoDetect: true);
+        HotkeySpec? recorded = null;
+        recorder.Recorded += spec => recorded = spec;
+        var t0 = new DateTime(2026, 1, 1, 0, 0, 0, DateTimeKind.Utc);
+
+        recorder.HandleKey(Up(VkSpace, ctrl: true, t: t0));
+        recorder.HandleKey(Up(VkSpace, ctrl: true, t: t0 + TimeSpan.FromMilliseconds(100)));
+        recorder.HandleTimeout(t0 + TimeSpan.FromMilliseconds(300)); // 已录完，到期应无动作
+
+        Assert.NotNull(recorded);
+        Assert.Equal(HotkeyKind.Chord, recorded.Kind);
+    }
+
+    [Fact]
+    public void AutoMode_SecondTapBeyondWindow_LastWinsAndTimesOutAsCombo()
+    {
+        var recorder = new HotkeyRecorder(HotkeyKind.Chord, Window, autoDetect: true);
+        HotkeySpec? recorded = null;
+        recorder.Recorded += spec => recorded = spec;
+        var t0 = new DateTime(2026, 1, 1, 0, 0, 0, DateTimeKind.Utc);
+
+        recorder.HandleKey(Up(VkSpace, ctrl: true, t: t0));
+        recorder.HandleKey(Up(VkSpace, ctrl: true, t: t0 + TimeSpan.FromSeconds(1))); // 超窗 → last-wins 重设候选
+        recorder.HandleTimeout(t0 + TimeSpan.FromSeconds(1) + Window);
+
+        Assert.NotNull(recorded);
+        Assert.Equal(HotkeyKind.Combo, recorded.Kind); // 最后候选敲定为单击
+    }
+
+    [Fact]
+    public void AutoMode_Esc_StillCancels()
+    {
+        var recorder = new HotkeyRecorder(HotkeyKind.Chord, Window, autoDetect: true);
+        var cancelled = false;
+        recorder.Cancelled += () => cancelled = true;
+
+        recorder.HandleKey(Down(0x1B));
+
+        Assert.True(cancelled);
+    }
 }

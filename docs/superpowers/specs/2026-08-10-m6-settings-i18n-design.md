@@ -18,7 +18,7 @@ M5 完成后，全局热键（截图 Ctrl+双击空格、穿透 Ctrl+Shift+P）�
 | 决策 | 结论 |
 |------|------|
 | 可配置热键范围 | 截图热键 + 穿透热键都可配 |
-| 截图热键语义 | **保持双击（chord）语义**，录制=按住修饰键+双击目标键 |
+| 截图热键语义 | **单击/双击自动识别**：录制时单击=普通组合键（combo）、双击=双击时序（chord）；2026-08-10 用户复议 |
 | 滚轮步长形式 | 预设档位：小 5% / 中 10% / 大 20% |
 | i18n 资源机制 | **resx**（中性英文 + zh-Hans + zh-Hant，自动回退） |
 | 语言切换 | **保存后**即时生效（托盘/贴屏菜单/设置窗口立即刷新）；默认跟随系统 |
@@ -84,9 +84,10 @@ public sealed record Settings(
 
 ### 4.3 HotkeyRecorder（新增，纯逻辑）
 
-- 输入键盘事件流（喂入 `KeyEvent`），两种模式：
+- 输入键盘事件流（喂入 `KeyEvent`），两种模式 + 一种自动识别：
   - **Chord 录制**：等待「修饰键按下 → 首个非修饰键 KeyUp（记为目标键候选）→ 同键第二次 KeyUp 间隔 ≤ 双击窗口且修饰键仍按下」→ 产出 `Chord` spec（修饰键取 KeyUp 时刻的掩码）。修饰键中途全部松开则复位重来
   - **Combo 录制**：等待任意非修饰键 KeyDown（修饰键掩码取按下时刻）→ 产出 `Combo` spec
+  - **autoDetect（截图热键）**：构造 `autoDetect: true` 时 Chord 分支不变，仅「单击候选在双击窗口到期后敲定为 Combo」——由钩子线程 DispatcherTimer（Interval=双击窗口）调用 `HandleTimeout(DateTime now)`（与 HandleKey 同线程，无竞态）；定时器挂钩子线程 dispatcher（`KeyboardHookService.Dispatcher`），挂 UI 线程会与钩子事件竞态
   - **Esc** 任意时刻取消 → `Cancelled`
 - 事件：`Recorded(HotkeySpec)` / `Cancelled`
 - 录制期间 App 自身热键**屏蔽**（录制状态标志，App.OnKey 先查录制状态）
@@ -184,7 +185,7 @@ Localization/
 |----------|------|
 | ChordDetector 参数化回归 | 修饰键掩码组合（Ctrl/Shift/Alt/Ctrl+Shift）、**精确匹配**（未声明修饰键按下→不触发）、现有 Ctrl+双击Space 回归 |
 | ComboDetector（新） | 单击触发、修饰键匹配、每次按压单触发（auto-repeat 抑制）、修饰键本身不触发 |
-| HotkeyRecorder（新） | chord 录制（修饰键+双击）、combo 录制、Esc 取消、修饰键中途松开复位、双击间隔超窗 |
+| HotkeyRecorder（新） | chord 录制（修饰键+双击）、combo 录制、Esc 取消、修饰键中途松开复位、双击间隔超窗、autoDetect 自动识别（单击到期敲定 Combo/窗口内双击→Chord/超窗 last-wins 后到期敲定/到期前不录/Esc 仍取消） |
 | 冲突检测 | 同 (Modifiers, Key) 拒绝、不同键放行 |
 | SettingsStore | 序列化往返、缺文件→默认、坏 JSON→默认、未知枚举→默认 |
 | HotkeyFormat | 三种语言下格式串、键名映射 |
@@ -202,6 +203,6 @@ Localization/
 ## 10. 范围外（明确不做）
 
 - Stitching 字符串抽取（M4 已跳过存档）
-- 截图热键单键触发模式（已定保持双击语义）
+- ~~截图热键单键触发模式~~（2026-08-10 用户复议：改为单击/双击自动识别，见 §2，已实现）
 - 编辑器内部快捷键（1-9/Ctrl+Z 等）自定义
 - 设置导入/导出

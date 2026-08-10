@@ -28,6 +28,9 @@ public sealed class KeyboardHookService : IDisposable
     /// <summary>钩子线程上触发（非 UI 线程），需要 UI 交互时请转发。</summary>
     public event Action<KeyEvent>? KeyReceived;
 
+    /// <summary>钩子线程 Dispatcher（录制定时器用：与 HandleKey 同线程避免竞态）。Start 完成后非 null。</summary>
+    public Dispatcher? Dispatcher => _dispatcher;
+
     public void Start()
     {
         if (_thread is not null) return;
