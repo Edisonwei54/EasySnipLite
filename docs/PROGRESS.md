@@ -119,12 +119,35 @@
 
 **踩坑记录**：无（subagent 流程全程审查通过，无新增踩坑）。
 
+### M6 设置+i18n（2026-08-10 本次；单测 167/167 全绿；手工 E2E 待终审后与用户执行；分支 feature/m6-settings-i18n）
+**交付**：设置窗口（托盘「设置」入口）：常规页（语言三选/保存目录/滚轮步长）+ 快捷键页（截图/穿透双热键录制：支持和弦与单键组合、冲突拒绝、Esc 取消）+ 语言即时预览；三语 resx（英/简/繁，76 键）运行时切换（CurrentUICulture + 动态重建托盘/贴屏菜单，已打开窗口即时变语言）；settings.json 持久化（原子写：临时文件 + 替换，损坏/缺失回退默认）；开机自启（注册表 HKCU Run 键，启动时按设置补写/删除同步）。**单测 167/167 全绿**（M5 121 基础上新增：ComboDetector 6 / HotkeyRecorder 8 / HotkeyFormat 6 / LocaleService 5 / SettingsStore 7，ChordDetector 与 PinMath 同步扩展用例）。
+
+**新增文件**：
+- `Core/Settings/HotkeySpec.cs` — 热键规格（HotkeyKind/HotkeyModifiers/HotkeySpec record，全计划类型一致）
+- `Core/Settings/Settings.cs` — 设置模型（Language/ScreenshotHotkey/PassThroughHotkey/SaveDirectory/ZoomFactor + Normalize）
+- `Core/Settings/SettingsStore.cs` — settings.json 读写（原子写，损坏/缺失回退默认，7 单测）
+- `Core/Settings/RegistryAutoStart.cs` — 开机自启（HKCU Run 键，写失败静默忽略，Sync 补写/删除）
+- `Core/Hotkeys/ComboDetector.cs` — 单键组合热键判定（防 auto-repeat，6 单测）
+- `Core/Hotkeys/HotkeyRecorder.cs` — 热键录制（Chord/Combo/Esc 取消，8 单测）
+- `Core/Hotkeys/ModifierMatch.cs` — 修饰键掩码匹配工具
+- `Core/Hotkeys/HotkeyFormat.cs` — 热键本地化显示（Ctrl + double-tap Space，6 单测）
+- `Localization/AppResources.cs` + `AppResources.resx`(×3: 默认英/zh-Hans/zh-Hant) — 三语资源（76 键）
+- `Localization/LocaleService.cs` — 语言映射 + SetLocale（切 CurrentUICulture + 广播变更，5 单测）
+- `Settings/SettingsWindow.xaml(.cs)` — 设置窗口（命名空间 **SettingsUI**，规避与 Settings 类型同名）
+
+**修改**：`ChordDetector`（修饰键掩码精确匹配 + AltDown 支持）、`KeyboardHookService`（KeyEvent.AltDown）、`Core/Native/Win32.cs`（扩展键等声明）、`App.xaml.cs`（装配：热键查表分发/录制状态/设置应用/自启同步/托盘重建）、`Tray/TrayIconService.cs`（菜单代码构建 + 设置入口 + Rebuild，热键/语言即时刷新）、`Pin/PinWindow`（右键菜单代码动态构建 + Localize/步长注入）、`PinMath`（步长参数化）、`Editor/EditorWindow` + `TextInputDialog` + `AnnotationCanvas`（字符串迁移 resx）、`Core/Imaging/ImageFile.cs`（保存目录可配置注入 + PNG 过滤器本地化）
+
+**踩坑记录（重要）**：
+1. **`EasySnipLite.Settings` 命名空间与 `Settings` 类型同名 → CS0118**：设置窗口初稿命名空间 `EasySnipLite.Settings`，与同程序集 `Core/Settings/Settings.cs` 的 `Settings` 类型撞名，类型引用处报「已存在或无法解析」——CLAUDE.md 规则 6 的教训重现（上次 `Core.Clipboard` vs WPF `Clipboard`）。已改名 `EasySnipLite.SettingsUI`。
+2. **托盘语言切换必须 SetLocale 先于 RebuildTray**：resx 生成的 AppResources 属性按 `CurrentUICulture` 动态解析，而托盘菜单字符串在构建（MenuItems 创建）时固化——顺序反了则菜单仍是旧语言。ApplySettings 固定顺序：`SetLocale → RebuildTray → 贴屏 ApplyLocale`（App.xaml.cs）。
+3. **WindowsDesktop SDK 隐式 using 不含 System.IO**：`SettingsStore` 直接用 File/Path/Directory 编译报「当前上下文中不存在」——WPF 项目默认隐式 using 只覆盖基础集，需显式 `using System.IO;`。
+
 ## 四、接下来要做什么
 
 | 里程碑 | 内容 | 验证方式 |
 |--------|------|----------|
-| **M6 设置+i18n**（下一个） | 快捷键录制、语言/保存目录/滚轮步长设置、三语切换、开机自启（注册表 Run） | 手工 |
-| M7 打磨+发布 | 边界处理、错误提示、单文件 publish 冒烟、README | 冒烟测试 |
+| **M7 打磨+发布**（下一个） | 边界处理、错误提示、单文件 publish 冒烟、README | 冒烟测试 |
+| M6 设置+i18n | 快捷键录制、语言/保存目录/滚轮步长设置、三语切换、开机自启（注册表 Run） | ✅ 已完成（单测 167/167；手工 E2E 待终审执行） |
 
 ## 五、总计划（架构与流程）
 
