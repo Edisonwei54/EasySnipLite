@@ -1,0 +1,79 @@
+<?xml version="1.0" encoding="utf-8"?>
+<root>
+  <resheader name="resmimetype"><value>text/microsoft-resx</value></resheader>
+  <resheader name="version"><value>2.0</value></resheader>
+  <resheader name="reader"><value>System.Resources.ResXResourceReader, System.Windows.Forms, Version=10.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value></resheader>
+  <resheader name="writer"><value>System.Resources.ResXResourceWriter, System.Windows.Forms, Version=10.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value></resheader>
+  <data name="TrayCaptureFormat" xml:space="preserve"><value>區域截圖 ({0})</value></data>
+  <data name="TraySettings" xml:space="preserve"><value>設定</value></data>
+  <data name="TrayExit" xml:space="preserve"><value>退出</value></data>
+  <data name="PinPassthrough" xml:space="preserve"><value>滑鼠穿透</value></data>
+  <data name="PinOpacity" xml:space="preserve"><value>透明度</value></data>
+  <data name="PinZoom100" xml:space="preserve"><value>100% 縮放</value></data>
+  <data name="PinCopy" xml:space="preserve"><value>複製</value></data>
+  <data name="PinSave" xml:space="preserve"><value>儲存</value></data>
+  <data name="PinClose" xml:space="preserve"><value>關閉</value></data>
+  <data name="EditorTitle" xml:space="preserve"><value>標註編輯器</value></data>
+  <data name="ToolSelection" xml:space="preserve"><value>選擇</value></data>
+  <data name="ToolRectangle" xml:space="preserve"><value>矩形</value></data>
+  <data name="ToolEllipse" xml:space="preserve"><value>橢圓</value></data>
+  <data name="ToolArrow" xml:space="preserve"><value>箭頭</value></data>
+  <data name="ToolFreehand" xml:space="preserve"><value>畫筆</value></data>
+  <data name="ToolHighlighter" xml:space="preserve"><value>螢光</value></data>
+  <data name="ToolMosaic" xml:space="preserve"><value>馬賽克</value></data>
+  <data name="ToolText" xml:space="preserve"><value>文字</value></data>
+  <data name="ToolEmoji" xml:space="preserve"><value>表情</value></data>
+  <data name="ColorRed" xml:space="preserve"><value>紅色</value></data>
+  <data name="ColorOrange" xml:space="preserve"><value>橙色</value></data>
+  <data name="ColorYellow" xml:space="preserve"><value>黃色</value></data>
+  <data name="ColorGreen" xml:space="preserve"><value>綠色</value></data>
+  <data name="ColorBlue" xml:space="preserve"><value>藍色</value></data>
+  <data name="ColorPurple" xml:space="preserve"><value>紫色</value></data>
+  <data name="ColorBlack" xml:space="preserve"><value>黑色</value></data>
+  <data name="ColorWhite" xml:space="preserve"><value>白色</value></data>
+  <data name="StrokeWidth" xml:space="preserve"><value>線寬</value></data>
+  <data name="Undo" xml:space="preserve"><value>復原</value></data>
+  <data name="Redo" xml:space="preserve"><value>重做</value></data>
+  <data name="Delete" xml:space="preserve"><value>刪除</value></data>
+  <data name="ActionCopy" xml:space="preserve"><value>複製</value></data>
+  <data name="ActionSave" xml:space="preserve"><value>儲存</value></data>
+  <data name="PinToScreen" xml:space="preserve"><value>釘到螢幕</value></data>
+  <data name="Complete" xml:space="preserve"><value>完成</value></data>
+  <data name="TtComplete" xml:space="preserve"><value>複製並關閉 (Enter)</value></data>
+  <data name="EmojiCategorySmile" xml:space="preserve"><value>笑臉</value></data>
+  <data name="EmojiCategoryGesture" xml:space="preserve"><value>手勢</value></data>
+  <data name="EmojiCategoryAnimal" xml:space="preserve"><value>動物</value></data>
+  <data name="EmojiCategoryFood" xml:space="preserve"><value>食物</value></data>
+  <data name="EmojiCategoryObject" xml:space="preserve"><value>物品</value></data>
+  <data name="TextInputTitle" xml:space="preserve"><value>輸入文字</value></data>
+  <data name="Ok" xml:space="preserve"><value>確定</value></data>
+  <data name="Cancel" xml:space="preserve"><value>取消</value></data>
+  <data name="SingleInstanceMsg" xml:space="preserve"><value>EasySnipLite 已在執行。</value></data>
+  <data name="CopyFailed" xml:space="preserve"><value>複製失敗：{0}</value></data>
+  <data name="SaveFailed" xml:space="preserve"><value>儲存失敗：{0}</value></data>
+  <data name="PinFailed" xml:space="preserve"><value>釘到螢幕失敗：{0}</value></data>
+  <data name="PngFilter" xml:space="preserve"><value>PNG 圖片 (*.png)|*.png</value></data>
+  <data name="HotkeyDoubleTap" xml:space="preserve"><value>雙擊</value></data>
+  <data name="RecordHotkey" xml:space="preserve"><value>錄製</value></data>
+  <data name="RecordPrompt" xml:space="preserve"><value>請按新快速鍵…（Esc 取消）</value></data>
+  <data name="RecordConflict" xml:space="preserve"><value>該快速鍵與另一快速鍵衝突。</value></data>
+  <data name="RecordApply" xml:space="preserve"><value>確定</value></data>
+  <data name="RecordRetry" xml:space="preserve"><value>重試</value></data>
+  <data name="SettingsTitle" xml:space="preserve"><value>設定</value></data>
+  <data name="GeneralSection" xml:space="preserve"><value>一般</value></data>
+  <data name="LanguageLabel" xml:space="preserve"><value>語言</value></data>
+  <data name="LangFollowSystem" xml:space="preserve"><value>跟隨系統</value></data>
+  <data name="SaveDirLabel" xml:space="preserve"><value>儲存目錄</value></data>
+  <data name="Browse" xml:space="preserve"><value>瀏覽…</value></data>
+  <data name="ZoomStepLabel" xml:space="preserve"><value>滾輪步長</value></data>
+  <data name="ZoomSmall" xml:space="preserve"><value>小 (5%)</value></data>
+  <data name="ZoomMedium" xml:space="preserve"><value>中 (10%)</value></data>
+  <data name="ZoomLarge" xml:space="preserve"><value>大 (20%)</value></data>
+  <data name="AutostartLabel" xml:space="preserve"><value>開機自啟</value></data>
+  <data name="HotkeySection" xml:space="preserve"><value>快速鍵</value></data>
+  <data name="CaptureHotkeyLabel" xml:space="preserve"><value>截圖快速鍵</value></data>
+  <data name="PassthroughHotkeyLabel" xml:space="preserve"><value>穿透快速鍵</value></data>
+  <data name="SaveBtn" xml:space="preserve"><value>儲存</value></data>
+  <data name="CancelBtn" xml:space="preserve"><value>取消</value></data>
+  <data name="ResetBtn" xml:space="preserve"><value>重設預設</value></data>
+</root>

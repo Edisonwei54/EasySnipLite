@@ -1,4 +1,5 @@
 using System.Windows;
+using EasySnipLite.Localization;
 
 namespace EasySnipLite.Editor;
 
@@ -10,6 +11,9 @@ public partial class TextInputDialog : Window
     public TextInputDialog()
     {
         InitializeComponent();
+        Title = AppResources.TextInputTitle;
+        OkBtn.Content = AppResources.Ok;
+        CancelBtn.Content = AppResources.Cancel;
         Loaded += (_, _) => Input.Focus();
     }
 

@@ -1,0 +1,263 @@
+using EasySnipLite.Core.Hotkeys;
+using EasySnipLite.Core.Settings;
+
+namespace EasySnipLite.Tests;
+
+public class HotkeyRecorderTests
+{
+    private const int VkSpace = 0x20;
+    private const int VkEsc = 0x1B;
+    private const int VkCtrl = 0x11;
+    private const int VkP = 0x50;
+    private static readonly TimeSpan Window = TimeSpan.FromMilliseconds(300);
+
+    private static KeyEvent Down(int vk, bool ctrl = false, bool shift = false, bool alt = false, DateTime? t = null) =>
+        new(KeyEventType.KeyDown, vk, ctrl, shift, alt, t ?? DateTime.UtcNow);
+
+    private static KeyEvent Up(int vk, bool ctrl = false, bool shift = false, bool alt = false, DateTime? t = null) =>
+        new(KeyEventType.KeyUp, vk, ctrl, shift, alt, t ?? DateTime.UtcNow);
+
+    [Fact]
+    public void ComboMode_PressCombination_RecordsSpec()
+    {
+        var recorder = new HotkeyRecorder(HotkeyKind.Combo, Window);
+        HotkeySpec? recorded = null;
+        recorder.Recorded += spec => recorded = spec;
+
+        recorder.HandleKey(Down(VkCtrl));
+        recorder.HandleKey(Down(VkP, ctrl: true));
+
+        Assert.NotNull(recorded);
+        Assert.Equal(HotkeyKind.Combo, recorded.Kind);
+        Assert.Equal(HotkeyModifiers.Ctrl, recorded.Modifiers);
+        Assert.Equal(VkP, recorded.VirtualKey);
+    }
+
+    [Fact]
+    public void ComboMode_ModifierKeysAlone_DoNotRecord()
+    {
+        var recorder = new HotkeyRecorder(HotkeyKind.Combo, Window);
+        var fired = false;
+        recorder.Recorded += _ => fired = true;
+
+        recorder.HandleKey(Down(VkCtrl));
+        recorder.HandleKey(Down(VkCtrl)); // 重复按修饰键
+        recorder.HandleKey(Up(VkCtrl));
+
+        Assert.False(fired);
+    }
+
+    [Fact]
+    public void ChordMode_DoubleTapWithModifier_RecordsChordSpec()
+    {
+        var recorder = new HotkeyRecorder(HotkeyKind.Chord, Window);
+        HotkeySpec? recorded = null;
+        recorder.Recorded += spec => recorded = spec;
+        var t0 = new DateTime(2026, 1, 1, 0, 0, 0, DateTimeKind.Utc);
+
+        recorder.HandleKey(Down(VkCtrl, t: t0));
+        recorder.HandleKey(Up(VkSpace, ctrl: true, t: t0));
+        recorder.HandleKey(Down(VkSpace, ctrl: true, t: t0 + TimeSpan.FromMilliseconds(50)));
+        recorder.HandleKey(Up(VkSpace, ctrl: true, t: t0 + TimeSpan.FromMilliseconds(80)));
+
+        Assert.NotNull(recorded);
+        Assert.Equal(HotkeyKind.Chord, recorded.Kind);
+        Assert.Equal(HotkeyModifiers.Ctrl, recorded.Modifiers);
+        Assert.Equal(VkSpace, recorded.VirtualKey);
+    }
+
+    [Fact]
+    public void ChordMode_SecondTapBeyondWindow_ResetsAndNeedsFreshDoubleTap()
+    {
+        var recorder = new HotkeyRecorder(HotkeyKind.Chord, Window);
+        HotkeySpec? recorded = null;
+        recorder.Recorded += spec => recorded = spec;
+        var t0 = new DateTime(2026, 1, 1, 0, 0, 0, DateTimeKind.Utc);
+
+        recorder.HandleKey(Up(VkSpace, ctrl: true, t: t0));
+        recorder.HandleKey(Up(VkSpace, ctrl: true, t: t0 + TimeSpan.FromSeconds(1))); // 超窗 → last-wins 重置
+        recorder.HandleKey(Up(VkSpace, ctrl: true, t: t0 + TimeSpan.FromSeconds(1) + TimeSpan.FromMilliseconds(80))); // 第三次快速跟上
+
+        Assert.NotNull(recorded); // 第二次+第三次构成新双击
+    }
+
+    [Fact]
+    public void ChordMode_ModifiersChangedMidChord_Resets()
+    {
+        var recorder = new HotkeyRecorder(HotkeyKind.Chord, Window);
+        HotkeySpec? recorded = null;
+        recorder.Recorded += spec => recorded = spec;
+        var t0 = new DateTime(2026, 1, 1, 0, 0, 0, DateTimeKind.Utc);
+
+        recorder.HandleKey(Up(VkSpace, ctrl: true, t: t0));
+        recorder.HandleKey(Up(VkSpace, shift: true, t: t0 + TimeSpan.FromMilliseconds(100))); // 修饰键不同 → 重置
+
+        Assert.Null(recorded);
+    }
+
+    [Fact]
+    public void ChordMode_DifferentKeyBetweenTaps_LastWins()
+    {
+        var recorder = new HotkeyRecorder(HotkeyKind.Chord, Window);
+        HotkeySpec? recorded = null;
+        recorder.Recorded += spec => recorded = spec;
+        var t0 = new DateTime(2026, 1, 1, 0, 0, 0, DateTimeKind.Utc);
+
+        recorder.HandleKey(Up(VkSpace, ctrl: true, t: t0));
+        recorder.HandleKey(Up(VkP, ctrl: true, t: t0 + TimeSpan.FromMilliseconds(50))); // 不同键 → 候选换成 P
+        recorder.HandleKey(Up(VkP, ctrl: true, t: t0 + TimeSpan.FromMilliseconds(80)));
+
+        Assert.NotNull(recorded);
+        Assert.Equal(VkP, recorded.VirtualKey);
+    }
+
+    [Fact]
+    public void Esc_AnyTime_Cancels()
+    {
+        var recorder = new HotkeyRecorder(HotkeyKind.Combo, Window);
+        var cancelled = false;
+        recorder.Cancelled += () => cancelled = true;
+
+        recorder.HandleKey(Down(VkEsc));
+
+        Assert.True(cancelled);
+    }
+
+    [Fact]
+    public void Esc_AfterRecordingStarted_StillCancels()
+    {
+        var recorder = new HotkeyRecorder(HotkeyKind.Chord, Window);
+        var cancelled = false;
+        recorder.Cancelled += () => cancelled = true;
+        var t0 = new DateTime(2026, 1, 1, 0, 0, 0, DateTimeKind.Utc);
+
+        recorder.HandleKey(Up(VkSpace, ctrl: true, t: t0));
+        recorder.HandleKey(Down(VkEsc, t: t0 + TimeSpan.FromMilliseconds(100)));
+
+        Assert.True(cancelled);
+    }
+
+    [Fact]
+    public void ComboMode_LeftCtrlModifierDown_IsIgnored_NotRecorded()
+    {
+        var recorder = new HotkeyRecorder(HotkeyKind.Combo, Window);
+        var fired = false;
+        recorder.Recorded += _ => fired = true;
+
+        recorder.HandleKey(Down(0xA2, ctrl: true)); // VK_LCONTROL
+
+        Assert.False(fired); // 修饰键不应成为目标键
+    }
+
+    [Fact]
+    public void ComboMode_LeftModifierCodes_PlusTarget_RecordsTargetWithModifiers()
+    {
+        var recorder = new HotkeyRecorder(HotkeyKind.Combo, Window);
+        HotkeySpec? recorded = null;
+        var count = 0;
+        recorder.Recorded += spec => { recorded = spec; count++; };
+
+        recorder.HandleKey(Down(0xA2, ctrl: true));              // VK_LCONTROL
+        recorder.HandleKey(Down(0xA0, ctrl: true, shift: true)); // VK_LSHIFT
+        recorder.HandleKey(Down(VkP, ctrl: true, shift: true));
+
+        Assert.Equal(1, count); // 修饰键按下不得触发录制，仅目标键记录一次
+        Assert.NotNull(recorded);
+        Assert.Equal(HotkeyModifiers.Ctrl | HotkeyModifiers.Shift, recorded.Modifiers);
+        Assert.Equal(VkP, recorded.VirtualKey);
+    }
+
+    [Fact]
+    public void ChordMode_ModifierRelease_DoesNotBecomeCandidate()
+    {
+        var recorder = new HotkeyRecorder(HotkeyKind.Chord, Window);
+        HotkeySpec? recorded = null;
+        recorder.Recorded += spec => recorded = spec;
+        var t0 = new DateTime(2026, 1, 1, 0, 0, 0, DateTimeKind.Utc);
+
+        recorder.HandleKey(Up(VkSpace, ctrl: true, t: t0));                            // 第一次 tap
+        recorder.HandleKey(Up(0xA2, t: t0 + TimeSpan.FromMilliseconds(50)));           // VK_LCONTROL KeyUp: 不得成为候选
+        recorder.HandleKey(Up(VkSpace, ctrl: true, t: t0 + TimeSpan.FromMilliseconds(80))); // 第二次 tap
+
+        Assert.NotNull(recorded);
+        Assert.Equal(HotkeyModifiers.Ctrl, recorded.Modifiers);
+        Assert.Equal(VkSpace, recorded.VirtualKey);
+    }
+
+    // ---- 自动识别模式（autoDetect: true，单击/双击均可）----
+
+    [Fact]
+    public void AutoMode_SingleTap_AfterWindow_RecordsCombo()
+    {
+        var recorder = new HotkeyRecorder(HotkeyKind.Chord, Window, autoDetect: true);
+        HotkeySpec? recorded = null;
+        recorder.Recorded += spec => recorded = spec;
+        var t0 = new DateTime(2026, 1, 1, 0, 0, 0, DateTimeKind.Utc);
+
+        recorder.HandleKey(Up(VkSpace, ctrl: true, t: t0));
+        recorder.HandleTimeout(t0 + Window); // 双击窗口到期
+
+        Assert.NotNull(recorded);
+        Assert.Equal(HotkeyKind.Combo, recorded.Kind);
+        Assert.Equal(HotkeyModifiers.Ctrl, recorded.Modifiers);
+        Assert.Equal(VkSpace, recorded.VirtualKey);
+    }
+
+    [Fact]
+    public void AutoMode_TimeoutBeforeWindow_DoesNotRecord()
+    {
+        var recorder = new HotkeyRecorder(HotkeyKind.Chord, Window, autoDetect: true);
+        var fired = false;
+        recorder.Recorded += _ => fired = true;
+        var t0 = new DateTime(2026, 1, 1, 0, 0, 0, DateTimeKind.Utc);
+
+        recorder.HandleKey(Up(VkSpace, ctrl: true, t: t0));
+        recorder.HandleTimeout(t0 + TimeSpan.FromMilliseconds(100)); // 窗口未到
+
+        Assert.False(fired);
+    }
+
+    [Fact]
+    public void AutoMode_DoubleTap_RecordsChord()
+    {
+        var recorder = new HotkeyRecorder(HotkeyKind.Chord, Window, autoDetect: true);
+        HotkeySpec? recorded = null;
+        recorder.Recorded += spec => recorded = spec;
+        var t0 = new DateTime(2026, 1, 1, 0, 0, 0, DateTimeKind.Utc);
+
+        recorder.HandleKey(Up(VkSpace, ctrl: true, t: t0));
+        recorder.HandleKey(Up(VkSpace, ctrl: true, t: t0 + TimeSpan.FromMilliseconds(100)));
+        recorder.HandleTimeout(t0 + TimeSpan.FromMilliseconds(300)); // 已录完，到期应无动作
+
+        Assert.NotNull(recorded);
+        Assert.Equal(HotkeyKind.Chord, recorded.Kind);
+    }
+
+    [Fact]
+    public void AutoMode_SecondTapBeyondWindow_LastWinsAndTimesOutAsCombo()
+    {
+        var recorder = new HotkeyRecorder(HotkeyKind.Chord, Window, autoDetect: true);
+        HotkeySpec? recorded = null;
+        recorder.Recorded += spec => recorded = spec;
+        var t0 = new DateTime(2026, 1, 1, 0, 0, 0, DateTimeKind.Utc);
+
+        recorder.HandleKey(Up(VkSpace, ctrl: true, t: t0));
+        recorder.HandleKey(Up(VkSpace, ctrl: true, t: t0 + TimeSpan.FromSeconds(1))); // 超窗 → last-wins 重设候选
+        recorder.HandleTimeout(t0 + TimeSpan.FromSeconds(1) + Window);
+
+        Assert.NotNull(recorded);
+        Assert.Equal(HotkeyKind.Combo, recorded.Kind); // 最后候选敲定为单击
+    }
+
+    [Fact]
+    public void AutoMode_Esc_StillCancels()
+    {
+        var recorder = new HotkeyRecorder(HotkeyKind.Chord, Window, autoDetect: true);
+        var cancelled = false;
+        recorder.Cancelled += () => cancelled = true;
+
+        recorder.HandleKey(Down(0x1B));
+
+        Assert.True(cancelled);
+    }
+}

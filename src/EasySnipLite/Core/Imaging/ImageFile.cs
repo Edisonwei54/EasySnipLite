@@ -1,18 +1,22 @@
 using System.IO;
 using System.Windows.Media;
 using System.Windows.Media.Imaging;
+using EasySnipLite.Localization;
 
 namespace EasySnipLite.Core.Imaging;
 
 /// <summary>图片落盘共享逻辑：SaveFileDialog + PNG 编码（选区保存与编辑器保存共用）。</summary>
 public static class ImageFile
 {
+    /// <summary>用户设置的保存目录提供者（App 启动注入读设置）；返回 null/空或不可写则回退默认。</summary>
+    public static Func<string?>? DefaultSaveDirProvider { get; set; }
+
     /// <summary>弹 SaveFileDialog 保存 PNG；取消返回 null。</summary>
     public static string? SavePngWithDialog(BitmapSource image, string defaultFileName)
     {
         var dialog = new Microsoft.Win32.SaveFileDialog
         {
-            Filter = "PNG 图片 (*.png)|*.png",
+            Filter = AppResources.PngFilter,
             DefaultExt = ".png",
             FileName = defaultFileName,
             InitialDirectory = DefaultSaveDir(),
@@ -34,6 +38,19 @@ public static class ImageFile
 
     public static string DefaultSaveDir()
     {
+        var configured = DefaultSaveDirProvider?.Invoke();
+        if (!string.IsNullOrEmpty(configured))
+        {
+            try
+            {
+                Directory.CreateDirectory(configured);
+                return configured;
+            }
+            catch
+            {
+                // 设置的目录不可写 → 回退默认
+            }
+        }
         var pictures = Environment.GetFolderPath(Environment.SpecialFolder.MyPictures);
         var dir = Path.Combine(pictures, "EasySnipLite");
         try

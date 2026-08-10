@@ -1,0 +1,79 @@
+<?xml version="1.0" encoding="utf-8"?>
+<root>
+  <resheader name="resmimetype"><value>text/microsoft-resx</value></resheader>
+  <resheader name="version"><value>2.0</value></resheader>
+  <resheader name="reader"><value>System.Resources.ResXResourceReader, System.Windows.Forms, Version=10.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value></resheader>
+  <resheader name="writer"><value>System.Resources.ResXResourceWriter, System.Windows.Forms, Version=10.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value></resheader>
+  <data name="TrayCaptureFormat" xml:space="preserve"><value>Capture Region ({0})</value></data>
+  <data name="TraySettings" xml:space="preserve"><value>Settings</value></data>
+  <data name="TrayExit" xml:space="preserve"><value>Exit</value></data>
+  <data name="PinPassthrough" xml:space="preserve"><value>Mouse Passthrough</value></data>
+  <data name="PinOpacity" xml:space="preserve"><value>Opacity</value></data>
+  <data name="PinZoom100" xml:space="preserve"><value>100% Zoom</value></data>
+  <data name="PinCopy" xml:space="preserve"><value>Copy</value></data>
+  <data name="PinSave" xml:space="preserve"><value>Save</value></data>
+  <data name="PinClose" xml:space="preserve"><value>Close</value></data>
+  <data name="EditorTitle" xml:space="preserve"><value>Annotation Editor</value></data>
+  <data name="ToolSelection" xml:space="preserve"><value>Select</value></data>
+  <data name="ToolRectangle" xml:space="preserve"><value>Rectangle</value></data>
+  <data name="ToolEllipse" xml:space="preserve"><value>Ellipse</value></data>
+  <data name="ToolArrow" xml:space="preserve"><value>Arrow</value></data>
+  <data name="ToolFreehand" xml:space="preserve"><value>Brush</value></data>
+  <data name="ToolHighlighter" xml:space="preserve"><value>Highlight</value></data>
+  <data name="ToolMosaic" xml:space="preserve"><value>Mosaic</value></data>
+  <data name="ToolText" xml:space="preserve"><value>Text</value></data>
+  <data name="ToolEmoji" xml:space="preserve"><value>Emoji</value></data>
+  <data name="ColorRed" xml:space="preserve"><value>Red</value></data>
+  <data name="ColorOrange" xml:space="preserve"><value>Orange</value></data>
+  <data name="ColorYellow" xml:space="preserve"><value>Yellow</value></data>
+  <data name="ColorGreen" xml:space="preserve"><value>Green</value></data>
+  <data name="ColorBlue" xml:space="preserve"><value>Blue</value></data>
+  <data name="ColorPurple" xml:space="preserve"><value>Purple</value></data>
+  <data name="ColorBlack" xml:space="preserve"><value>Black</value></data>
+  <data name="ColorWhite" xml:space="preserve"><value>White</value></data>
+  <data name="StrokeWidth" xml:space="preserve"><value>Stroke</value></data>
+  <data name="Undo" xml:space="preserve"><value>Undo</value></data>
+  <data name="Redo" xml:space="preserve"><value>Redo</value></data>
+  <data name="Delete" xml:space="preserve"><value>Delete</value></data>
+  <data name="ActionCopy" xml:space="preserve"><value>Copy</value></data>
+  <data name="ActionSave" xml:space="preserve"><value>Save</value></data>
+  <data name="PinToScreen" xml:space="preserve"><value>Pin to Screen</value></data>
+  <data name="Complete" xml:space="preserve"><value>Done</value></data>
+  <data name="TtComplete" xml:space="preserve"><value>Copy and close (Enter)</value></data>
+  <data name="EmojiCategorySmile" xml:space="preserve"><value>Smileys</value></data>
+  <data name="EmojiCategoryGesture" xml:space="preserve"><value>Gestures</value></data>
+  <data name="EmojiCategoryAnimal" xml:space="preserve"><value>Animals</value></data>
+  <data name="EmojiCategoryFood" xml:space="preserve"><value>Food</value></data>
+  <data name="EmojiCategoryObject" xml:space="preserve"><value>Objects</value></data>
+  <data name="TextInputTitle" xml:space="preserve"><value>Enter Text</value></data>
+  <data name="Ok" xml:space="preserve"><value>OK</value></data>
+  <data name="Cancel" xml:space="preserve"><value>Cancel</value></data>
+  <data name="SingleInstanceMsg" xml:space="preserve"><value>EasySnipLite is already running.</value></data>
+  <data name="CopyFailed" xml:space="preserve"><value>Copy failed: {0}</value></data>
+  <data name="SaveFailed" xml:space="preserve"><value>Save failed: {0}</value></data>
+  <data name="PinFailed" xml:space="preserve"><value>Pin failed: {0}</value></data>
+  <data name="PngFilter" xml:space="preserve"><value>PNG Image (*.png)|*.png</value></data>
+  <data name="HotkeyDoubleTap" xml:space="preserve"><value>double-tap</value></data>
+  <data name="RecordHotkey" xml:space="preserve"><value>Record</value></data>
+  <data name="RecordPrompt" xml:space="preserve"><value>Press new shortcut… (Esc to cancel)</value></data>
+  <data name="RecordConflict" xml:space="preserve"><value>This shortcut conflicts with the other hotkey.</value></data>
+  <data name="RecordApply" xml:space="preserve"><value>Apply</value></data>
+  <data name="RecordRetry" xml:space="preserve"><value>Retry</value></data>
+  <data name="SettingsTitle" xml:space="preserve"><value>Settings</value></data>
+  <data name="GeneralSection" xml:space="preserve"><value>General</value></data>
+  <data name="LanguageLabel" xml:space="preserve"><value>Language</value></data>
+  <data name="LangFollowSystem" xml:space="preserve"><value>Follow system</value></data>
+  <data name="SaveDirLabel" xml:space="preserve"><value>Save Directory</value></data>
+  <data name="Browse" xml:space="preserve"><value>Browse…</value></data>
+  <data name="ZoomStepLabel" xml:space="preserve"><value>Zoom Step</value></data>
+  <data name="ZoomSmall" xml:space="preserve"><value>Small (5%)</value></data>
+  <data name="ZoomMedium" xml:space="preserve"><value>Medium (10%)</value></data>
+  <data name="ZoomLarge" xml:space="preserve"><value>Large (20%)</value></data>
+  <data name="AutostartLabel" xml:space="preserve"><value>Start on Boot</value></data>
+  <data name="HotkeySection" xml:space="preserve"><value>Hotkeys</value></data>
+  <data name="CaptureHotkeyLabel" xml:space="preserve"><value>Capture Hotkey</value></data>
+  <data name="PassthroughHotkeyLabel" xml:space="preserve"><value>Passthrough Hotkey</value></data>
+  <data name="SaveBtn" xml:space="preserve"><value>Save</value></data>
+  <data name="CancelBtn" xml:space="preserve"><value>Cancel</value></data>
+  <data name="ResetBtn" xml:space="preserve"><value>Reset to Defaults</value></data>
+</root>

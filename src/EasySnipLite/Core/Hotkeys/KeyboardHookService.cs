@@ -5,6 +5,14 @@ using EasySnipLite.Core.Native;
 
 namespace EasySnipLite.Core.Hotkeys;
 
+public enum KeyEventType
+{
+    KeyDown,
+    KeyUp,
+}
+
+public sealed record KeyEvent(KeyEventType Type, int VirtualKey, bool CtrlDown, bool ShiftDown, bool AltDown, DateTime Timestamp);
+
 /// <summary>
 /// WH_KEYBOARD_LL 低级键盘钩子。钩子回调运行在专用 STA 线程的消息循环上
 /// （低级钩子的回调必须所在线程有消息循环，否则会被系统静默卸载）。
@@ -19,6 +27,9 @@ public sealed class KeyboardHookService : IDisposable
 
     /// <summary>钩子线程上触发（非 UI 线程），需要 UI 交互时请转发。</summary>
     public event Action<KeyEvent>? KeyReceived;
+
+    /// <summary>钩子线程 Dispatcher（录制定时器用：与 HandleKey 同线程避免竞态）。Start 完成后非 null。</summary>
+    public Dispatcher? Dispatcher => _dispatcher;
 
     public void Start()
     {
@@ -51,12 +62,14 @@ public sealed class KeyboardHookService : IDisposable
                 var data = Marshal.PtrToStructure<Win32.KBDLLHOOKSTRUCT>(lParam);
                 bool ctrlDown = (Win32.GetAsyncKeyState(Win32.VK_CONTROL) & 0x8000) != 0;
                 bool shiftDown = (Win32.GetAsyncKeyState(Win32.VK_SHIFT) & 0x8000) != 0;
+                bool altDown = (Win32.GetAsyncKeyState(Win32.VK_MENU) & 0x8000) != 0;
                 bool isUp = msg is Win32.WM_KEYUP or Win32.WM_SYSKEYUP;
                 var evt = new KeyEvent(
                     isUp ? KeyEventType.KeyUp : KeyEventType.KeyDown,
                     (int)data.vkCode,
                     ctrlDown,
                     shiftDown,
+                    altDown,
                     DateTime.UtcNow);
                 KeyReceived?.Invoke(evt);
             }

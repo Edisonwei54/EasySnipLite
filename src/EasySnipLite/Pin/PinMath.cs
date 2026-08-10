@@ -17,9 +17,9 @@ public static class PinMath
     public static (double X, double Y) LayoutPosition(int pixelX, int pixelY, double dpiScale) =>
         (pixelX / dpiScale, pixelY / dpiScale);
 
-    public static double NextZoom(double current, bool zoomIn)
+    public static double NextZoom(double current, bool zoomIn, double step = ZoomStep)
     {
-        var next = zoomIn ? current * ZoomStep : current / ZoomStep;
+        var next = zoomIn ? current * step : current / step;
         return Math.Clamp(next, MinZoom, MaxZoom);
     }
 }

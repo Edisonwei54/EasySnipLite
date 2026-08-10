@@ -6,14 +6,15 @@ using System.Windows.Media.Imaging;
 using EasySnipLite.Core.ClipboardServices;
 using EasySnipLite.Core.Imaging;
 using EasySnipLite.Core.Native;
+using EasySnipLite.Localization;
 
 namespace EasySnipLite.Pin;
 
 /// <summary>
 /// 贴屏窗口：无边框置顶，初始 1:1（物理像素/DpiScale）显示在截图原位置。
-/// 拖动=左键 DragMove；Ctrl+滚轮缩放（50%~300%）；右键菜单：穿透/透明度/100% 缩放/复制/保存/关闭。
+/// 拖动=左键 DragMove；Ctrl+滚轮缩放（50%~300%，步长可配）；右键菜单：穿透/透明度/100% 缩放/复制/保存/关闭
+/// （代码动态构建，语言切换时 ApplyLocale 重建并刷新步长）。
 /// 穿透=SetWindowLongPtr 增删 WS_EX_TRANSPARENT（WPF AllowsTransparency 窗口已是 layered，透明度走 Window.Opacity）。
-/// 多张并存：App 持有列表管理，Topmost 组内点击激活即置前。
 /// </summary>
 public partial class PinWindow : Window
 {
@@ -22,14 +23,17 @@ public partial class PinWindow : Window
     private readonly int _pixelY;
     private double _dpiScale = 1.0;
     private double _zoom = 1.0;
+    private double _zoomStep = PinMath.ZoomStep;
     private bool _passthrough;
+    private System.Windows.Controls.MenuItem? _passthroughMenuItem;
 
-    public PinWindow(BitmapSource image, int pixelX, int pixelY)
+    public PinWindow(BitmapSource image, int pixelX, int pixelY, double zoomStep = PinMath.ZoomStep)
     {
         InitializeComponent();
         _image = image;
         _pixelX = pixelX;
         _pixelY = pixelY;
+        _zoomStep = zoomStep;
         PinImage.Source = image;
         Loaded += OnLoaded;
         // 跨屏拖动到不同 DPI 显示器时刷新缩放比例（DpiChanged 在窗口句柄存在后触发，WPF 保证）
@@ -38,6 +42,14 @@ public partial class PinWindow : Window
             _dpiScale = VisualTreeHelper.GetDpi(this).DpiScaleX;
             ApplyLayout();
         };
+        Localize();
+    }
+
+    /// <summary>语言切换/设置变更时由 App 调用：刷新步长并重建右键菜单。</summary>
+    public void ApplyLocale(double zoomStep)
+    {
+        _zoomStep = zoomStep;
+        Localize();
     }
 
     public bool IsPassthrough
@@ -47,7 +59,8 @@ public partial class PinWindow : Window
         {
             if (_passthrough == value) return;
             _passthrough = value;
-            PassthroughMenuItem.IsChecked = _passthrough; // 同步菜单勾选态(Checked 事件再入被早退挡住,无递归)
+            if (_passthroughMenuItem is not null)
+                _passthroughMenuItem.IsChecked = _passthrough; // 勾选态同步(Checked 事件再入被早退挡,无递归)
             ApplyPassthrough();
         }
     }
@@ -91,12 +104,52 @@ public partial class PinWindow : Window
     private void OnPreviewMouseWheel(object sender, MouseWheelEventArgs e)
     {
         if ((Keyboard.Modifiers & ModifierKeys.Control) == 0) return;
-        _zoom = PinMath.NextZoom(_zoom, e.Delta > 0);
+        _zoom = PinMath.NextZoom(_zoom, e.Delta > 0, _zoomStep);
         ApplyLayout();
         e.Handled = true;
     }
 
-    // ---- 右键菜单 ----
+    // ---- 右键菜单（代码构建，支持语言即时切换）----
+
+    private void Localize()
+    {
+        var menu = new System.Windows.Controls.ContextMenu();
+
+        _passthroughMenuItem = new System.Windows.Controls.MenuItem
+        {
+            Header = AppResources.PinPassthrough,
+            IsCheckable = true,
+            IsChecked = _passthrough,
+        };
+        _passthroughMenuItem.Checked += Passthrough_Toggled;
+        _passthroughMenuItem.Unchecked += Passthrough_Toggled;
+
+        var opacity = new System.Windows.Controls.MenuItem { Header = AppResources.PinOpacity };
+        foreach (var (label, tag) in new[] { ("100%", "1.0"), ("85%", "0.85"), ("70%", "0.7"), ("50%", "0.5") })
+        {
+            var item = new System.Windows.Controls.MenuItem { Header = label, Tag = tag };
+            item.Click += Opacity_Click;
+            opacity.Items.Add(item);
+        }
+
+        var zoom100 = new System.Windows.Controls.MenuItem { Header = AppResources.PinZoom100 };
+        zoom100.Click += Zoom100_Click;
+        var copy = new System.Windows.Controls.MenuItem { Header = AppResources.PinCopy };
+        copy.Click += Copy_Click;
+        var save = new System.Windows.Controls.MenuItem { Header = AppResources.PinSave };
+        save.Click += Save_Click;
+        var close = new System.Windows.Controls.MenuItem { Header = AppResources.PinClose };
+        close.Click += Close_Click;
+
+        menu.Items.Add(_passthroughMenuItem);
+        menu.Items.Add(opacity);
+        menu.Items.Add(zoom100);
+        menu.Items.Add(new System.Windows.Controls.Separator());
+        menu.Items.Add(copy);
+        menu.Items.Add(save);
+        menu.Items.Add(close);
+        ContextMenu = menu;
+    }
 
     private void Passthrough_Toggled(object sender, RoutedEventArgs e)
     {
@@ -125,7 +178,8 @@ public partial class PinWindow : Window
         }
         catch (Exception ex)
         {
-            MessageBox.Show(this, $"复制失败：{ex.Message}", "EasySnipLite", MessageBoxButton.OK, MessageBoxImage.Error);
+            MessageBox.Show(this, string.Format(AppResources.CopyFailed, ex.Message), "EasySnipLite",
+                MessageBoxButton.OK, MessageBoxImage.Error);
         }
     }
 
@@ -137,7 +191,8 @@ public partial class PinWindow : Window
         }
         catch (Exception ex)
         {
-            MessageBox.Show(this, $"保存失败：{ex.Message}", "EasySnipLite", MessageBoxButton.OK, MessageBoxImage.Error);
+            MessageBox.Show(this, string.Format(AppResources.SaveFailed, ex.Message), "EasySnipLite",
+                MessageBoxButton.OK, MessageBoxImage.Error);
         }
     }
 

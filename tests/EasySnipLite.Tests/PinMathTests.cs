@@ -83,4 +83,18 @@ public class PinMathTests
         Assert.Equal(0.5, PinMath.NextZoom(0.5, zoomIn: false), 6);
         Assert.Equal(0.5, PinMath.NextZoom(0.51, zoomIn: false), 6);
     }
+
+    [Fact]
+    public void NextZoom_CustomStep_AppliesFactor()
+    {
+        Assert.Equal(1.0 * 1.2, PinMath.NextZoom(1.0, zoomIn: true, step: 1.2));
+        Assert.Equal(1.0 / 1.05, PinMath.NextZoom(1.0, zoomIn: false, step: 1.05));
+    }
+
+    [Fact]
+    public void NextZoom_CustomStep_StillClamped()
+    {
+        Assert.Equal(PinMath.MaxZoom, PinMath.NextZoom(2.9, zoomIn: true, step: 1.2));
+        Assert.Equal(PinMath.MinZoom, PinMath.NextZoom(0.51, zoomIn: false, step: 1.05));
+    }
 }

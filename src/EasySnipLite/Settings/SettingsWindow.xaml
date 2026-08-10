@@ -1,0 +1,82 @@
+<Window x:Class="EasySnipLite.SettingsUI.SettingsWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        WindowStartupLocation="CenterScreen" ShowInTaskbar="False"
+        ResizeMode="NoResize" SizeToContent="Height" Width="460">
+    <StackPanel Margin="18">
+        <!-- 常规区 -->
+        <TextBlock x:Name="GeneralHeader" FontWeight="Bold" Margin="0,0,0,8"/>
+        <Grid Margin="0,0,0,4">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="Auto"/>
+                <ColumnDefinition Width="*"/>
+                <ColumnDefinition Width="Auto"/>
+            </Grid.ColumnDefinitions>
+            <TextBlock x:Name="LanguageLabel" VerticalAlignment="Center" Margin="0,0,12,0"/>
+            <ComboBox x:Name="LanguageCombo" Grid.Column="1" HorizontalAlignment="Left" MinWidth="160"
+                      SelectionChanged="LanguageCombo_SelectionChanged"/>
+        </Grid>
+        <Grid Margin="0,0,0,4">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="Auto"/>
+                <ColumnDefinition Width="*"/>
+                <ColumnDefinition Width="Auto"/>
+            </Grid.ColumnDefinitions>
+            <TextBlock x:Name="SaveDirLabel" VerticalAlignment="Center" Margin="0,0,12,0"/>
+            <TextBox x:Name="SaveDirText" Grid.Column="1" IsReadOnly="True" VerticalAlignment="Center" Margin="0,0,8,0"/>
+            <Button x:Name="BrowseBtn" Grid.Column="2" Padding="10,2" Click="Browse_Click"/>
+        </Grid>
+        <Grid Margin="0,0,0,4">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="Auto"/>
+                <ColumnDefinition Width="*"/>
+                <ColumnDefinition Width="Auto"/>
+            </Grid.ColumnDefinitions>
+            <TextBlock x:Name="ZoomStepLabel" VerticalAlignment="Center" Margin="0,0,12,0"/>
+            <ComboBox x:Name="ZoomCombo" Grid.Column="1" HorizontalAlignment="Left" MinWidth="160"
+                      SelectionChanged="ZoomCombo_SelectionChanged"/>
+        </Grid>
+        <Grid Margin="0,0,0,4">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="Auto"/>
+                <ColumnDefinition Width="*"/>
+                <ColumnDefinition Width="Auto"/>
+            </Grid.ColumnDefinitions>
+            <TextBlock x:Name="AutostartLabel" VerticalAlignment="Center" Margin="0,0,12,0"/>
+            <CheckBox x:Name="AutostartCheck" Grid.Column="1" VerticalAlignment="Center"
+                      Checked="Autostart_Toggled" Unchecked="Autostart_Toggled"/>
+        </Grid>
+
+        <!-- 快捷键区 -->
+        <TextBlock x:Name="HotkeyHeader" FontWeight="Bold" Margin="0,12,0,8"/>
+        <Grid Margin="0,0,0,4">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="Auto"/>
+                <ColumnDefinition Width="*"/>
+                <ColumnDefinition Width="Auto"/>
+            </Grid.ColumnDefinitions>
+            <TextBlock x:Name="CaptureLabel" VerticalAlignment="Center" Margin="0,0,12,0"/>
+            <TextBlock x:Name="CaptureHotkeyText" Grid.Column="1" VerticalAlignment="Center" Margin="0,0,8,0"/>
+            <Button x:Name="CaptureRecordBtn" Grid.Column="2" Padding="10,2" Click="RecordCapture_Click"/>
+        </Grid>
+        <Grid Margin="0,0,0,4">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="Auto"/>
+                <ColumnDefinition Width="*"/>
+                <ColumnDefinition Width="Auto"/>
+            </Grid.ColumnDefinitions>
+            <TextBlock x:Name="PassthroughLabel" VerticalAlignment="Center" Margin="0,0,12,0"/>
+            <TextBlock x:Name="PassthroughHotkeyText" Grid.Column="1" VerticalAlignment="Center" Margin="0,0,8,0"/>
+            <Button x:Name="PassthroughRecordBtn" Grid.Column="2" Padding="10,2" Click="RecordPassthrough_Click"/>
+        </Grid>
+
+        <!-- 操作按钮 -->
+        <Grid Margin="0,16,0,0">
+            <Button x:Name="ResetBtn" HorizontalAlignment="Left" Padding="10,2" Click="Reset_Click"/>
+            <StackPanel HorizontalAlignment="Right" Orientation="Horizontal">
+                <Button x:Name="SaveBtn" Padding="14,2" IsDefault="True" Click="Save_Click" Margin="0,0,8,0"/>
+                <Button x:Name="CancelBtn" Padding="14,2" IsCancel="True" Click="Cancel_Click"/>
+            </StackPanel>
+        </Grid>
+    </StackPanel>
+</Window>
