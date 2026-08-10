@@ -120,7 +120,7 @@
 **踩坑记录**：无（subagent 流程全程审查通过，无新增踩坑）。
 
 ### M6 设置+i18n（2026-08-10 本次；单测 167/167 全绿；手工 E2E 待终审后与用户执行；分支 feature/m6-settings-i18n）
-**交付**：设置窗口（托盘「设置」入口）：常规页（语言三选/保存目录/滚轮步长）+ 快捷键页（截图/穿透双热键录制：支持和弦与单键组合、冲突拒绝、Esc 取消）+ 语言即时预览；三语 resx（英/简/繁，76 键）运行时切换（CurrentUICulture + 动态重建托盘/贴屏菜单，已打开窗口即时变语言）；settings.json 持久化（原子写：临时文件 + 替换，损坏/缺失回退默认）；开机自启（注册表 HKCU Run 键，启动时按设置补写/删除同步）。**单测 167/167 全绿**（M5 121 基础上新增：ComboDetector 6 / HotkeyRecorder 8 / HotkeyFormat 6 / LocaleService 5 / SettingsStore 7，ChordDetector 与 PinMath 同步扩展用例）。
+**交付**：设置窗口（托盘「设置」入口）：常规页（语言三选/保存目录/滚轮步长）+ 快捷键页（截图/穿透双热键录制：支持和弦与单键组合、冲突拒绝、Esc 取消）+ 语言即时预览；三语 resx（英/简/繁，72 键）运行时切换（CurrentUICulture + 动态重建托盘/贴屏菜单，已打开窗口即时变语言）；settings.json 持久化（原子写：临时文件 + 替换，损坏/缺失回退默认）；开机自启（注册表 HKCU Run 键，启动时按设置补写/删除同步）。**单测 167/167 全绿**（M5 121 基础上新增：ComboDetector 6 / HotkeyRecorder 8 / HotkeyFormat 6 / LocaleService 5 / SettingsStore 7，ChordDetector 与 PinMath 同步扩展用例）。
 
 **新增文件**：
 - `Core/Settings/HotkeySpec.cs` — 热键规格（HotkeyKind/HotkeyModifiers/HotkeySpec record，全计划类型一致）
@@ -131,7 +131,7 @@
 - `Core/Hotkeys/HotkeyRecorder.cs` — 热键录制（Chord/Combo/Esc 取消，8 单测）
 - `Core/Hotkeys/ModifierMatch.cs` — 修饰键掩码匹配工具
 - `Core/Hotkeys/HotkeyFormat.cs` — 热键本地化显示（Ctrl + double-tap Space，6 单测）
-- `Localization/AppResources.cs` + `AppResources.resx`(×3: 默认英/zh-Hans/zh-Hant) — 三语资源（76 键）
+- `Localization/AppResources.cs` + `AppResources.resx`(×3: 默认英/zh-Hans/zh-Hant) — 三语资源（72 键）
 - `Localization/LocaleService.cs` — 语言映射 + SetLocale（切 CurrentUICulture + 广播变更，5 单测）
 - `Settings/SettingsWindow.xaml(.cs)` — 设置窗口（命名空间 **SettingsUI**，规避与 Settings 类型同名）
 
@@ -141,6 +141,8 @@
 1. **`EasySnipLite.Settings` 命名空间与 `Settings` 类型同名 → CS0118**：设置窗口初稿命名空间 `EasySnipLite.Settings`，与同程序集 `Core/Settings/Settings.cs` 的 `Settings` 类型撞名，类型引用处报「已存在或无法解析」——CLAUDE.md 规则 6 的教训重现（上次 `Core.Clipboard` vs WPF `Clipboard`）。已改名 `EasySnipLite.SettingsUI`。
 2. **托盘语言切换必须 SetLocale 先于 RebuildTray**：resx 生成的 AppResources 属性按 `CurrentUICulture` 动态解析，而托盘菜单字符串在构建（MenuItems 创建）时固化——顺序反了则菜单仍是旧语言。ApplySettings 固定顺序：`SetLocale → RebuildTray → 贴屏 ApplyLocale`（App.xaml.cs）。
 3. **WindowsDesktop SDK 隐式 using 不含 System.IO**：`SettingsStore` 直接用 File/Path/Directory 编译报「当前上下文中不存在」——WPF 项目默认隐式 using 只覆盖基础集，需显式 `using System.IO;`。
+4. **录制未完成关窗口会吞全局热键**：设置窗口打开中开始录制（await 挂起）→ 用户直接点 X/保存/取消/重置关窗 → `_settingsWindowOpen=false` 但 `_recorder` 仍非空 → OnKey 先走录制分支吞掉所有按键（截图/穿透全失效）。App 在 ShowDialog 返回后检查 `_recorder` 并清理（置空 + `_recordTcs.TrySetResult(null)` 完成挂起 await）。
+5. **语言即时预览需临时切换 CurrentUICulture**：resx 生成的 AppResources 属性按 `CurrentUICulture` 动态解析，仅改 `_draft` 窗口文本纹丝不动——预览时临时 `CurrentUICulture = ResolveCulture(...)` 再 Localize（不广播）；保存路径 ApplySettings 已 SetLocale 终值，未保存关闭（X/取消/重置）由 Closed 事件恢复初始语言。
 
 ## 四、接下来要做什么
 

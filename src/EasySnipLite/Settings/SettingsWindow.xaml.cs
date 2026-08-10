@@ -1,3 +1,4 @@
+using System.Globalization;
 using System.Windows;
 using System.Windows.Controls;
 using EasySnipLite.Core.Hotkeys;
@@ -19,6 +20,8 @@ public sealed partial class SettingsWindow : Window
     private bool _suppressPreview; // 重建下拉项时抑制 SelectionChanged 再入
     // 待确认的录制结果：捕获成功后按钮变「确定」，点击才写入 _draft；再次点本行「录制」=重试覆盖
     private (HotkeyKind Kind, HotkeySpec Spec, Button Btn, TextBlock Display)? _pending;
+    private readonly CultureInfo _initialCulture; // 语言预览前的初始语言（未保存关闭时恢复）
+    private bool _saved; // 已保存：关闭时不再恢复预览语言（ApplySettings 已 SetLocale 终值）
 
     public SettingsWindow(Settings current, Func<HotkeyKind, Task<HotkeySpec?>> record, Action<Settings> apply)
     {
@@ -26,11 +29,15 @@ public sealed partial class SettingsWindow : Window
         _draft = current;
         _record = record;
         _apply = apply;
+        _initialCulture = CultureInfo.CurrentUICulture;
+        // 覆盖 X/取消/重置后关闭等所有未保存路径；保存路径 _saved=true 挡住恢复（ApplySettings 已设终值）
+        Closed += (_, _) => { if (!_saved) CultureInfo.CurrentUICulture = _initialCulture; };
         Localize();
     }
 
     private void Localize()
     {
+        _pending = null; // 语言预览/重置重跑本地化时清除待确认，避免陈旧 spec 被提交（按钮文案同在下文恢复）
         _suppressPreview = true;
 
         Title = AppResources.SettingsTitle;
@@ -84,7 +91,10 @@ public sealed partial class SettingsWindow : Window
     {
         if (_suppressPreview || LanguageCombo.SelectedIndex < 0) return;
         _draft = _draft with { Language = (AppLanguage)LanguageCombo.SelectedIndex };
-        Localize(); // 仅窗口内预览（下拉重建被 _suppressPreview 挡住再入）
+        // 预览：临时切换 CurrentUICulture（resx 按它动态解析）；不调用 SetLocale、不广播——
+        // 托盘/贴屏在保存时经 ApplySettings 统一刷新；未保存关闭由 Closed 恢复初始语言
+        CultureInfo.CurrentUICulture = LocaleService.ResolveCulture(_draft.Language, CultureInfo.InstalledUICulture);
+        Localize();
     }
 
     private void ZoomCombo_SelectionChanged(object sender, SelectionChangedEventArgs e)
@@ -138,10 +148,23 @@ public sealed partial class SettingsWindow : Window
         PassthroughRecordBtn.IsEnabled = false;
         btn.Content = AppResources.RecordPrompt;
 
-        var spec = await _record(kind);
-        btn.Content = AppResources.RecordHotkey;
-        CaptureRecordBtn.IsEnabled = true;
-        PassthroughRecordBtn.IsEnabled = true;
+        HotkeySpec? spec = null;
+        try
+        {
+            spec = await _record(kind); // App 回调设计不抛；防御：异常按取消处理
+        }
+        catch
+        {
+            // 防御：即使回调抛异常也不崩溃（async void 会终止进程），按取消处理
+        }
+        finally
+        {
+            // 无论取消/冲突/异常都恢复按钮，避免永久禁用
+            btn.Content = AppResources.RecordHotkey;
+            CaptureRecordBtn.IsEnabled = true;
+            PassthroughRecordBtn.IsEnabled = true;
+        }
+
         if (spec is null) return; // Esc 取消：按钮恢复「录制」，可重试
 
         if (spec.ConflictsWith(other))
@@ -151,7 +174,7 @@ public sealed partial class SettingsWindow : Window
             return; // 按钮已恢复「录制」，再次点击即重试
         }
 
-        // 成功：显示新键，按钮变「确定」等待确认
+        // 成功：显示新键，按钮变「确定」等待确认（在 finally 之后设置，避免被恢复逻辑覆盖）
         display.Text = HotkeyFormat.Format(spec, AppResources.HotkeyDoubleTap);
         _pending = (kind, spec, btn, display);
         btn.Content = AppResources.RecordApply;
@@ -171,7 +194,8 @@ public sealed partial class SettingsWindow : Window
 
     private void Save_Click(object sender, RoutedEventArgs e)
     {
-        _apply(_draft);
+        _apply(_draft); // App 落盘 + 全局应用（ApplySettings 内 SetLocale 设语言终值）
+        _saved = true;  // 必须在 Close 前：Closed 事件据此刻断是否恢复预览语言
         Close();
     }
 

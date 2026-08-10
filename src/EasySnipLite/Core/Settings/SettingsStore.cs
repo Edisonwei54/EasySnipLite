@@ -29,6 +29,7 @@ public static class SettingsStore
     public static void Save(string path, Settings settings)
     {
         var dir = Path.GetDirectoryName(path)!;
+        if (dir.Length == 0) dir = "."; // 裸文件名防御（T4-M1）
         Directory.CreateDirectory(dir);
         var tmp = path + ".tmp";
         File.WriteAllText(tmp, JsonSerializer.Serialize(settings, JsonOptions));

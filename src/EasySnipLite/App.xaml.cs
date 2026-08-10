@@ -27,13 +27,18 @@ public partial class App : Application
     private Settings _settings = new();
 
     // 录制状态：录制期间自身热键只喂 recorder；设置窗口打开期间屏蔽自身热键
-    private HotkeyRecorder? _recorder;
+    // volatile：UI 线程写、钩子线程读（x64 下实际良性，一字保险）
+    private volatile HotkeyRecorder? _recorder;
     private TaskCompletionSource<HotkeySpec?>? _recordTcs;
-    private bool _settingsWindowOpen;
+    private volatile bool _settingsWindowOpen;
 
     protected override void OnStartup(StartupEventArgs e)
     {
         base.OnStartup(e);
+
+        // 设置加载（M6）：先于单实例检查——单实例提示需按配置语言渲染
+        _settings = SettingsStore.Load(SettingsStore.DefaultPath());
+        LocaleService.SetLocale(_settings.Language); // 单实例提示/托盘等按设置语言渲染
 
         // 单实例：二次启动提示后退出（M5）
         _mutex = new Mutex(true, "EasySnipLite_SingleInstance", out bool createdNew);
@@ -47,11 +52,9 @@ public partial class App : Application
 
         ShutdownMode = ShutdownMode.OnExplicitShutdown;
 
-        // 设置加载与装配（M6）
-        _settings = SettingsStore.Load(SettingsStore.DefaultPath());
+        // 装配（M6）
         ImageFile.DefaultSaveDirProvider = () => _settings.SaveDirectory;
         RegistryAutoStart.Sync(_settings.Autostart); // 启动同步：设置开但注册表缺失则补写
-        LocaleService.SetLocale(_settings.Language); // 启动即按设置语言渲染（托盘等）
         BuildDetectors();
 
         _tray = new TrayIconService();
@@ -126,6 +129,13 @@ public partial class App : Application
         var win = new SettingsWindow(_settings, RecordHotkeyAsync, ApplySettings);
         win.ShowDialog();
         _settingsWindowOpen = false;
+
+        // 窗口未完成录制就关闭时清理录制状态，避免全局热键被吞
+        if (_recorder is not null)
+        {
+            _recorder = null;
+            _recordTcs?.TrySetResult(null);
+        }
     }
 
     /// <summary>录制入口：设置录制状态（OnKey 优先喂 recorder），等待 Hook 线程事件，完成后返回 spec（取消=null）。</summary>
@@ -152,7 +162,8 @@ public partial class App : Application
     private void ApplySettings(Settings next)
     {
         _settings = next;
-        SettingsStore.Save(SettingsStore.DefaultPath(), next);
+        try { SettingsStore.Save(SettingsStore.DefaultPath(), next); }
+        catch { /* 磁盘满/只读/文件被锁等：与 RegistryAutoStart 一致静默忽略；内存态已更新，下次启动再尝试落盘 */ }
         ImageFile.DefaultSaveDirProvider = () => next.SaveDirectory;
         RegistryAutoStart.Sync(next.Autostart);
         LocaleService.SetLocale(next.Language); // 先切语言再重建托盘：AppResources 动态解析，托盘需按新语言渲染
