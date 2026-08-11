@@ -18,6 +18,7 @@ dotnet publish src/EasySnipLite -c Release -r win-x64 -o dist  # 单文件发布
 ## 目录结构
 
 ```
+.github/                   GitHub Actions（ci.yml 构建测试 / codeql.yml 安全扫描 / release.yml 打 tag 自动发布）+ dependabot.yml + Issue/PR 模板
 src/EasySnipLite/          WPF 主程序（net10.0-windows, UseWPF+UseWindowsForms）
   Core/Native/Win32.cs     全部 P/Invoke 集中于此
   Core/Hotkeys/            ChordDetector/ComboDetector（纯逻辑）+ KeyboardHookService（WH_KEYBOARD_LL）+ HotkeyRecorder/HotkeyFormat/ModifierMatch
@@ -58,3 +59,4 @@ docs/                      PROGRESS.md（里程碑进度）、superpowers/specs/
 - M6 设置+i18n ✅（设置窗口/截图+穿透双热键录制（截图单击/双击自动识别）/三语 resx 即时切换/settings.json 持久化/开机自启；单测 176/176 全绿，手工 E2E 已验证，PR #6 已合并）
 - M7 打磨+发布 ✅（错误处理管线/启动+保存失败气泡/边界小修/单文件 publish 冒烟/版本 1.0.0；单测 188/188 全绿，verify-m7 通过，PR #7 已合并）
 - 全部里程碑完成，进入维护期（缺陷修复/新功能建议）
+- 维护期 GitHub 配置：CI（PR/push main 自动 build+test+CodeQL 扫描）、分支保护（main 必须 PR 合并且 build-test 通过）、Dependabot（依赖漏洞+每周版本巡检）、Release 自动发布（`git tag v1.0.0 && git push origin v1.0.0` → 单文件 exe 挂 Releases，首个 v1.0.0 已发布）、CONTRIBUTING/SECURITY/Issue+PR 模板

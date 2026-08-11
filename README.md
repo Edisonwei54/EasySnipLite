@@ -40,7 +40,10 @@ dotnet test EasySnipLite.slnx
 
 ## 📦 发布
 
-    # 单文件发布（self-contained，含 .NET 运行时，产物在 dist/）
+    # 自动发布（推荐）：打 tag 即出 Release（GitHub Actions 自动 publish 单文件 exe 并挂到 Releases 页）
+    git tag v1.0.1 && git push origin v1.0.1
+
+    # 手动单文件发布（self-contained，含 .NET 运行时，产物在 dist/）
     dotnet publish src/EasySnipLite -c Release -r win-x64 -o dist
 
     # 发布冒烟验证（热键→框选→剪贴板，需解锁桌面）
@@ -78,6 +81,8 @@ EasySnipLite.slnx
 
 ## 📄 文档
 
+- [贡献指南](CONTRIBUTING.md)（提 Issue / PR 前必读）
+- [安全政策](SECURITY.md)（漏洞报告走私有安全公告）
 - [设计文档](docs/superpowers/specs/2026-08-07-easysniplite-design.md)
 - [里程碑进度与踩坑记录](docs/PROGRESS.md)
 
