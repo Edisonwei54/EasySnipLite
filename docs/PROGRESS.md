@@ -174,6 +174,13 @@
 2. rulesets 旧版 branch protection API（`/branches/main/protection`）与新规则并存时返回 404 属正常——新版规则用 `/rulesets` 端点查询。
 3. Dependabot alerts 页面入口在改版后位置变动，可直接用 API 启用：`PUT /repos/{owner}/{repo}/vulnerability-alerts`（204 成功）。
 
+### 维护期：v1.0.0 首个 Release（2026-08-11；PR #17 修复 + 发布）
+**交付**：Release 自动发布链路端到端验证：`git tag v1.0.0 && git push origin v1.0.0` → Release workflow（dotnet publish 单文件 exe 165MB → gh release create 自动 changelog）→ https://github.com/Edisonwei54/EasySnipLite/releases/tag/v1.0.0。之后发版固定为打 tag 即发布。
+
+**踩坑记录**：
+1. **PowerShell 不展开 `$GITHUB_REF_NAME`**：runner 默认 shell 为 pwsh，`$GITHUB_REF_NAME` 是普通变量（空值），环境变量需 `$env:` 前缀——`gh release create ""` 报 `tag required when not running interactively`。修复：改用 `${{ github.ref_name }}` GitHub 表达式（任何 shell 都替换为字面值），PR #17 已修。教训：GitHub Actions 里取上下文值优先用 `${{ }}` 表达式，避免 shell 变量语法坑。
+2. 首次 tag 已推送但 Release 创建失败——无需保留：`git tag -d v1.0.0` + `git push origin :refs/tags/v1.0.0` 删除后重打即可（未创建 Release 时无残留）。
+
 ## 四、接下来要做什么
 
 | 里程碑 | 内容 | 验证方式 |
