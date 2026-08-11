@@ -166,7 +166,7 @@
 
 **踩坑记录**：runner 为 session 0 无交互桌面，截图/热键 E2E 无法在 CI 运行——CI 只做编译 + 单测，发布冒烟仍走本地 `tools/verify-m7.ps1`。
 
-### 维护期：开源门面配置（2026-08-11 本次；PR #10）
+### 维护期：开源门面配置（2026-08-11 本次；PR #16）
 **交付**：分支保护 ruleset（main：必须 PR 合并 + build-test 必检 + 分支最新 + 禁强推/删除，Ruleset id 20680347）；Dependabot 三件套（alerts + security updates 已启用，version updates 每周巡检，首批 6 个更新 PR 全部合并：Test.Sdk 18.8.1 / coverlet 10.0.1 / xunit.runner 3.1.5 / checkout v7 / setup-dotnet v6 / upload-artifact v7）；`CONTRIBUTING.md` + Issue(bug/feature 表单) + PR 模板；`SECURITY.md` + CodeQL workflow（csharp 每周扫描）；Release workflow（tag v* → publish 单文件 exe → GitHub Releases）；README 补 Dependabot/License 徽章。
 
 **踩坑记录**：
