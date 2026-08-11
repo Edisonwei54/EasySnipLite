@@ -25,9 +25,11 @@ jobs:
         run: dotnet publish src/EasySnipLite -c Release -r win-x64 -o dist
 
       - name: Create GitHub Release
+        # 用 ${{ github.ref_name }} 而非 $GITHUB_REF_NAME——默认 shell 为 PowerShell，
+        # $GITHUB_REF_NAME 会被当成普通变量（空），需 $env: 前缀或 GitHub 表达式
         run: |
-          gh release create "$GITHUB_REF_NAME" dist/EasySnipLite.exe `
-            --title "EasySnipLite $GITHUB_REF_NAME" `
+          gh release create "${{ github.ref_name }}" dist/EasySnipLite.exe `
+            --title "EasySnipLite ${{ github.ref_name }}" `
             --generate-notes
         env:
           GH_TOKEN: ${{ github.token }}
