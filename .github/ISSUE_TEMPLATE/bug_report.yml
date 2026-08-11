@@ -1,0 +1,55 @@
+name: Bug 报告
+description: 报告程序问题
+title: "[Bug]: "
+labels: ["bug"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        感谢报告问题！请尽量提供完整信息，帮助我们更快定位。
+  - type: textarea
+    id: description
+    attributes:
+      label: 问题描述
+      description: 发生了什么？预期应该是什么？
+    validations:
+      required: true
+  - type: textarea
+    id: repro
+    attributes:
+      label: 复现步骤
+      description: 如何复现这个问题？
+      placeholder: |
+        1. 启动应用
+        2. 按下 Ctrl + 双击空格
+        3. ...
+    validations:
+      required: true
+  - type: textarea
+    id: expected
+    attributes:
+      label: 实际 vs 预期
+      description: 实际结果和预期结果分别是什么？
+    validations:
+      required: true
+  - type: dropdown
+    id: version
+    attributes:
+      label: 应用版本
+      options:
+        - 1.0.0（GitHub Releases）
+        - 从源码构建
+        - 不确定
+    validations:
+      required: true
+  - type: textarea
+    id: environment
+    attributes:
+      label: 环境
+      description: Windows 版本（如 Win10/11）、屏幕分辨率与 DPI、是否多显示器
+      placeholder: "例如：Windows 11 24H2，1920x1080@150%，双显示器"
+  - type: textarea
+    id: logs
+    attributes:
+      label: 日志（可选）
+      description: 应用目录下的 error.log（若存在）
