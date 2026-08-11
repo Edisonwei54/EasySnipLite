@@ -1,6 +1,8 @@
 # EasySnipLite
 
 ![CI](https://github.com/Edisonwei54/EasySnipLite/actions/workflows/ci.yml/badge.svg)
+![Dependabot](https://img.shields.io/badge/Dependabot-enabled-025e8c?logo=Dependabot)
+![License](https://img.shields.io/github/license/Edisonwei54/EasySnipLite)
 
 轻量快速的 Windows 截图与标注工具 —— 按下全局快捷键，拖拽框选区域，标注后复制、保存或贴到屏幕。专注日常截图与无缝长截图。
 

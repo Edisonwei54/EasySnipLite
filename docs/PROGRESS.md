@@ -166,6 +166,14 @@
 
 **踩坑记录**：runner 为 session 0 无交互桌面，截图/热键 E2E 无法在 CI 运行——CI 只做编译 + 单测，发布冒烟仍走本地 `tools/verify-m7.ps1`。
 
+### 维护期：开源门面配置（2026-08-11 本次；PR #10）
+**交付**：分支保护 ruleset（main：必须 PR 合并 + build-test 必检 + 分支最新 + 禁强推/删除，Ruleset id 20680347）；Dependabot 三件套（alerts + security updates 已启用，version updates 每周巡检，首批 6 个更新 PR 全部合并：Test.Sdk 18.8.1 / coverlet 10.0.1 / xunit.runner 3.1.5 / checkout v7 / setup-dotnet v6 / upload-artifact v7）；`CONTRIBUTING.md` + Issue(bug/feature 表单) + PR 模板；`SECURITY.md` + CodeQL workflow（csharp 每周扫描）；Release workflow（tag v* → publish 单文件 exe → GitHub Releases）；README 补 Dependabot/License 徽章。
+
+**踩坑记录**：
+1. Dependabot 配置合并后立即执行首次扫描，一次性开出多个更新 PR（并发上限 `open-pull-requests-limit: 5`），属正常行为——逐个合并即可，Dependabot 会自动 rebase 保持分支最新。
+2. rulesets 旧版 branch protection API（`/branches/main/protection`）与新规则并存时返回 404 属正常——新版规则用 `/rulesets` 端点查询。
+3. Dependabot alerts 页面入口在改版后位置变动，可直接用 API 启用：`PUT /repos/{owner}/{repo}/vulnerability-alerts`（204 成功）。
+
 ## 四、接下来要做什么
 
 | 里程碑 | 内容 | 验证方式 |

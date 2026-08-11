@@ -6,6 +6,7 @@ Windows 轻量截图与标注工具（C# 14 / WPF / .NET 10）。全局热键唤
 
 ```bash
 # CI: .github/workflows/ci.yml（PR / push main 自动 build+test，GitHub Actions 徽章见 README）
+# Release: git tag v1.0.1 && git push origin v1.0.1 → 自动 publish 单文件 exe 挂 GitHub Releases（.github/workflows/release.yml）
 dotnet build EasySnipLite.slnx            # 构建（Debug 输出在 bin/Debug/net10.0-windows/win-x64/）
 dotnet test EasySnipLite.slnx             # 运行全部单测（xUnit）
 dotnet test --filter "FullyQualifiedName~ChordDetectorTests"   # 跑指定测试
