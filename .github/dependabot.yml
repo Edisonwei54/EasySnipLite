@@ -1,0 +1,16 @@
+# Dependabot version updates config
+# NuGet: weekly check for xunit / coverlet / test-sdk updates
+# github-actions: keep checkout / setup-dotnet etc. up to date
+version: 2
+updates:
+  - package-ecosystem: "nuget"
+    directory: "/"
+    schedule:
+      interval: "weekly"
+    open-pull-requests-limit: 5
+
+  - package-ecosystem: "github-actions"
+    directory: "/"
+    schedule:
+      interval: "weekly"
+    open-pull-requests-limit: 5
