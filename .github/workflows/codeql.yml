@@ -1,0 +1,38 @@
+name: "CodeQL"
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  schedule:
+    - cron: "23 4 * * 1"   # 每周一 04:23（避开整点）
+
+jobs:
+  analyze:
+    name: Analyze
+    runs-on: windows-latest   # 项目 net10.0-windows，构建需 Windows
+    timeout-minutes: 60
+    permissions:
+      security-events: write
+    strategy:
+      fail-fast: false
+      matrix:
+        language: ["csharp"]
+    steps:
+      - uses: actions/checkout@v7
+
+      - name: Initialize CodeQL
+        uses: github/codeql-action/init@v3
+        with:
+          languages: ${{ matrix.language }}
+
+      - name: Setup .NET
+        uses: actions/setup-dotnet@v6
+        with:
+          dotnet-version: 10.0.x
+
+      - name: Build
+        run: dotnet build EasySnipLite.slnx
+
+      - name: Perform CodeQL Analysis
+        uses: github/codeql-action/analyze@v3
