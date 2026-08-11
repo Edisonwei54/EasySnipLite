@@ -161,10 +161,16 @@
 2. **启动期异常必须走 Fatal，不能静默置 Handled**：DispatcherUnhandledException 无条件 Notify + e.Handled=true 时，OnStartup 期异常（如 RegistryAutoStart.Sync/钩子启动失败）会被 Dispatcher 吞掉——AppDomain 钩子收不到已处理异常 → 无托盘无气泡无热键的静默进程占住单实例 mutex，后续启动全部「已在运行」退出（僵尸进程）。终审修复 ae77cd8：`_startupComplete` 标志在 OnStartup 末尾置位，启动期异常改走 `AppErrors.Fatal`（弹窗+退出）。
 3. 无其他新增踩坑（subagent 流程全程审查通过）。
 
+### 维护期：CI 自动化（2026-08-11；PR #8）
+**交付**：GitHub Actions CI（`.github/workflows/ci.yml`）：PR / push(main) 自动 build(Release) + 单测 188/188 + TRX 上传；`global.json` 锁定 SDK 10.0.302（rollForward latestFeature，本地精确命中 / CI 滚动最新）；README 加 CI 徽章。设计见 `docs/superpowers/specs/2026-08-11-ci-design.md`，计划见 `docs/superpowers/plans/2026-08-11-ci.md`。
+
+**踩坑记录**：runner 为 session 0 无交互桌面，截图/热键 E2E 无法在 CI 运行——CI 只做编译 + 单测，发布冒烟仍走本地 `tools/verify-m7.ps1`。
+
 ## 四、接下来要做什么
 
 | 里程碑 | 内容 | 验证方式 |
 |--------|------|----------|
+| CI 自动化 | GitHub Actions：PR / push main 自动 build + 单测，TRX 上传，README 徽章 | ✅ 已完成（单测 188/188，PR #8 已合并） |
 | M7 打磨+发布 | 边界处理、错误提示、单文件 publish 冒烟、README | ✅ 已完成（单测 188/188，发布冒烟通过，PR #7 已合并；发布说明见 README「发布」小节） |
 | M6 设置+i18n | 快捷键录制、语言/保存目录/滚轮步长设置、三语切换、开机自启（注册表 Run） | ✅ 已完成（单测 176/176，手工 E2E 已验证，PR #6 已合并） |
 | —— | **M0-M7 全部完成**，进入维护期（缺陷修复/新功能建议） | — |

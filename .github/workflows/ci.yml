@@ -1,0 +1,36 @@
+name: CI
+
+on:
+  pull_request:
+  push:
+    branches:
+      - main
+
+jobs:
+  build-test:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup .NET
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: 10.0.x
+          cache: true
+          cache-dependency-path: "**/*.csproj"
+
+      - name: Restore dependencies
+        run: dotnet restore EasySnipLite.slnx
+
+      - name: Build
+        run: dotnet build EasySnipLite.slnx -c Release --no-restore
+
+      - name: Test
+        run: dotnet test EasySnipLite.slnx -c Release --no-build --logger "trx;LogFileName=test-results.trx" --results-directory TestResults
+
+      - name: Upload test results
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: test-results
+          path: TestResults
