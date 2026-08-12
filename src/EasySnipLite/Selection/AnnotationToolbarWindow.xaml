@@ -1,0 +1,55 @@
+<Window x:Class="EasySnipLite.Selection.AnnotationToolbarWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        Title="EasySnipLite"
+        WindowStyle="None"
+        AllowsTransparency="True"
+        Background="Transparent"
+        Topmost="True"
+        ShowInTaskbar="False"
+        ShowActivated="False"
+        SizeToContent="WidthAndHeight"
+        WindowStartupLocation="Manual"
+        ResizeMode="NoResize">
+    <!-- 悬浮标注工具栏：框选完成后出现在选区下方，工具/动作与编辑器工具条一致。
+         全部控件 Focusable=False：点击不抢走遮罩窗口的键盘焦点（方向键微调/快捷键继续生效）。 -->
+    <Border Background="#FF2D2D30" BorderBrush="#FF55555A" BorderThickness="1" CornerRadius="4" Padding="6,5">
+        <WrapPanel>
+            <ToggleButton x:Name="BtnSelection" Tag="Selection" Focusable="False" Checked="ToolButton_Checked" Margin="0,0,3,0"/>
+            <ToggleButton x:Name="BtnRect" Tag="Rectangle" Focusable="False" Checked="ToolButton_Checked" Margin="0,0,3,0"/>
+            <ToggleButton x:Name="BtnEllipse" Tag="Ellipse" Focusable="False" Checked="ToolButton_Checked" Margin="0,0,3,0"/>
+            <ToggleButton x:Name="BtnArrow" Tag="Arrow" Focusable="False" Checked="ToolButton_Checked" Margin="0,0,3,0"/>
+            <ToggleButton x:Name="BtnFreehand" Tag="Freehand" Focusable="False" Checked="ToolButton_Checked" Margin="0,0,3,0"/>
+            <ToggleButton x:Name="BtnHighlighter" Tag="Highlighter" Focusable="False" Checked="ToolButton_Checked" Margin="0,0,3,0"/>
+            <ToggleButton x:Name="BtnMosaic" Tag="Mosaic" Focusable="False" Checked="ToolButton_Checked" Margin="0,0,3,0"/>
+            <ToggleButton x:Name="BtnText" Tag="Text" Focusable="False" Checked="ToolButton_Checked" Margin="0,0,3,0"/>
+            <ToggleButton x:Name="BtnEmoji" Tag="Emoji" Focusable="False" Checked="ToolButton_Checked" Margin="0,0,8,0"/>
+
+            <Separator Width="1" Height="22" Background="#FF55555A" Margin="0,2,8,0"/>
+
+            <StackPanel Orientation="Horizontal" Margin="0,1,0,0">
+                <Button x:Name="ColorRed" Width="18" Height="18" Background="#FFE53935" BorderThickness="0" Focusable="False" Click="ColorButton_Click" Margin="0,2,3,0"/>
+                <Button x:Name="ColorOrange" Width="18" Height="18" Background="#FFFF9800" BorderThickness="0" Focusable="False" Click="ColorButton_Click" Margin="0,2,3,0"/>
+                <Button x:Name="ColorYellow" Width="18" Height="18" Background="#FFFFEB3B" BorderThickness="0" Focusable="False" Click="ColorButton_Click" Margin="0,2,3,0"/>
+                <Button x:Name="ColorGreen" Width="18" Height="18" Background="#FF4CAF50" BorderThickness="0" Focusable="False" Click="ColorButton_Click" Margin="0,2,3,0"/>
+                <Button x:Name="ColorBlue" Width="18" Height="18" Background="#FF2196F3" BorderThickness="0" Focusable="False" Click="ColorButton_Click" Margin="0,2,3,0"/>
+                <Button x:Name="ColorPurple" Width="18" Height="18" Background="#FF9C27B0" BorderThickness="0" Focusable="False" Click="ColorButton_Click" Margin="0,2,3,0"/>
+                <Button x:Name="ColorBlack" Width="18" Height="18" Background="#FF000000" BorderThickness="0" Focusable="False" Click="ColorButton_Click" Margin="0,2,3,0"/>
+                <Button x:Name="ColorWhite" Width="18" Height="18" Background="#FFFFFFFF" BorderThickness="0" Focusable="False" Click="ColorButton_Click" Margin="0,2,3,0"/>
+            </StackPanel>
+
+            <ComboBox x:Name="StrokeWidthCombo" Width="52" Focusable="False" Margin="4,0,8,0" VerticalContentAlignment="Center" SelectionChanged="StrokeWidth_Changed"/>
+
+            <Button x:Name="BtnUndo" Focusable="False" Click="Undo_Click" Margin="0,0,3,0" ToolTip="Ctrl+Z"/>
+            <Button x:Name="BtnRedo" Focusable="False" Click="Redo_Click" Margin="0,0,3,0" ToolTip="Ctrl+Y"/>
+            <Button x:Name="BtnDelete" Focusable="False" Click="Delete_Click" Margin="0,0,8,0" ToolTip="Delete"/>
+
+            <Separator Width="1" Height="22" Background="#FF55555A" Margin="0,2,8,0"/>
+
+            <Button x:Name="BtnCopy" Focusable="False" Click="Copy_Click" Margin="0,0,3,0" ToolTip="Ctrl+C"/>
+            <Button x:Name="BtnSave" Focusable="False" Click="Save_Click" Margin="0,0,3,0" ToolTip="Ctrl+S"/>
+            <Button x:Name="BtnPin" Focusable="False" Click="Pin_Click" Margin="0,0,3,0"/>
+            <Button x:Name="BtnComplete" Focusable="False" Click="Complete_Click" Margin="0,0,3,0" FontWeight="Bold"/>
+        </WrapPanel>
+    </Border>
+</Window>

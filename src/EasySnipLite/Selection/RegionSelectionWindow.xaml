@@ -1,6 +1,7 @@
 <Window x:Class="EasySnipLite.Selection.RegionSelectionWindow"
         xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:editor="clr-namespace:EasySnipLite.Editor"
         Title="EasySnipLite"
         WindowStyle="None"
         AllowsTransparency="True"
@@ -28,6 +29,10 @@
         <Rectangle x:Name="MaskBottom" Fill="#80000000" />
         <Rectangle x:Name="MaskLeft" Fill="#80000000" />
         <Rectangle x:Name="MaskRight" Fill="#80000000" />
+        <!-- 内联标注层（issue #20）：冻结选区图像 + 矢量标注，LayoutTransform 按显示器 DpiScale 缩放到 1:1 物理像素 -->
+        <editor:AnnotationCanvas x:Name="AnnotationLayer"
+                                 ClipToBounds="True"
+                                 Visibility="Collapsed" />
         <!-- 选区边框 -->
         <Rectangle x:Name="SelectionRect"
                    Stroke="#FF2D9CFF"
@@ -75,5 +80,43 @@
                            HorizontalAlignment="Center" />
             </StackPanel>
         </Border>
+
+        <!-- 表情选择面板（标注模式文字/表情工具点击后显示） -->
+        <Popup x:Name="EmojiPopup" StaysOpen="False" Placement="MousePoint" AllowsTransparency="True">
+            <Border Background="White" BorderBrush="#FFB0B0B0" BorderThickness="1" CornerRadius="4" Padding="8" MaxWidth="400">
+                <TabControl>
+                    <TabItem x:Name="TabSmile">
+                        <ItemsControl ItemsSource="{Binding Smile}">
+                            <ItemsControl.ItemsPanel><ItemsPanelTemplate><WrapPanel/></ItemsPanelTemplate></ItemsControl.ItemsPanel>
+                            <ItemsControl.ItemTemplate><DataTemplate><Button Content="{Binding}" FontFamily="Segoe UI Emoji" FontSize="20" Width="36" Height="36" Background="Transparent" BorderThickness="0" Click="EmojiButton_Click"/></DataTemplate></ItemsControl.ItemTemplate>
+                        </ItemsControl>
+                    </TabItem>
+                    <TabItem x:Name="TabGesture">
+                        <ItemsControl ItemsSource="{Binding Gesture}">
+                            <ItemsControl.ItemsPanel><ItemsPanelTemplate><WrapPanel/></ItemsPanelTemplate></ItemsControl.ItemsPanel>
+                            <ItemsControl.ItemTemplate><DataTemplate><Button Content="{Binding}" FontFamily="Segoe UI Emoji" FontSize="20" Width="36" Height="36" Background="Transparent" BorderThickness="0" Click="EmojiButton_Click"/></DataTemplate></ItemsControl.ItemTemplate>
+                        </ItemsControl>
+                    </TabItem>
+                    <TabItem x:Name="TabAnimal">
+                        <ItemsControl ItemsSource="{Binding Animal}">
+                            <ItemsControl.ItemsPanel><ItemsPanelTemplate><WrapPanel/></ItemsPanelTemplate></ItemsControl.ItemsPanel>
+                            <ItemsControl.ItemTemplate><DataTemplate><Button Content="{Binding}" FontFamily="Segoe UI Emoji" FontSize="20" Width="36" Height="36" Background="Transparent" BorderThickness="0" Click="EmojiButton_Click"/></DataTemplate></ItemsControl.ItemTemplate>
+                        </ItemsControl>
+                    </TabItem>
+                    <TabItem x:Name="TabFood">
+                        <ItemsControl ItemsSource="{Binding Food}">
+                            <ItemsControl.ItemsPanel><ItemsPanelTemplate><WrapPanel/></ItemsPanelTemplate></ItemsControl.ItemsPanel>
+                            <ItemsControl.ItemTemplate><DataTemplate><Button Content="{Binding}" FontFamily="Segoe UI Emoji" FontSize="20" Width="36" Height="36" Background="Transparent" BorderThickness="0" Click="EmojiButton_Click"/></DataTemplate></ItemsControl.ItemTemplate>
+                        </ItemsControl>
+                    </TabItem>
+                    <TabItem x:Name="TabObject">
+                        <ItemsControl ItemsSource="{Binding Object}">
+                            <ItemsControl.ItemsPanel><ItemsPanelTemplate><WrapPanel/></ItemsPanelTemplate></ItemsControl.ItemsPanel>
+                            <ItemsControl.ItemTemplate><DataTemplate><Button Content="{Binding}" FontFamily="Segoe UI Emoji" FontSize="20" Width="36" Height="36" Background="Transparent" BorderThickness="0" Click="EmojiButton_Click"/></DataTemplate></ItemsControl.ItemTemplate>
+                        </ItemsControl>
+                    </TabItem>
+                </TabControl>
+            </Border>
+        </Popup>
     </Canvas>
 </Window>

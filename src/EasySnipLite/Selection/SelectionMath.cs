@@ -30,6 +30,9 @@ public static class SelectionMath
     /// <summary>放大镜与鼠标之间的间隔(窗口逻辑像素)。</summary>
     public const double MagnifierOffset = 16;
 
+    /// <summary>悬浮标注工具栏与选区之间的间隔(物理像素)。</summary>
+    public const double ToolbarMargin = 8;
+
     /// <summary>命中测试:返回 point(虚拟物理坐标)命中的目标。角优先于边,边优先于主体。</summary>
     public static SelectionHandle HitTest(Int32Rect rect, Point point, double hitRadius)
     {
@@ -188,5 +191,30 @@ public static class SelectionMath
         return new Point(
             Math.Max(0, Math.Min(windowSize.Width - mw, mouse.X)),
             Math.Max(0, Math.Min(windowSize.Height - mh, mouse.Y)));
+    }
+
+    /// <summary>
+    /// 悬浮标注工具栏左上角位置(虚拟屏幕物理像素):优先选区正下方水平居中,
+    /// 下方放不下则翻到上方,极端情况钳制在虚拟屏幕内。
+    /// sizeLogical 为工具栏逻辑尺寸,dpiScale 换算为物理像素。
+    /// </summary>
+    public static Point ToolbarPlacement(Int32Rect region, Int32Rect bounds, Size sizeLogical, double dpiScale)
+    {
+        double tw = sizeLogical.Width * dpiScale;
+        double th = sizeLogical.Height * dpiScale;
+        if (tw <= 0 || th <= 0) return new Point(region.X, region.Y);
+
+        // 水平居中,钳制在 bounds 左右
+        double cx = region.X + region.Width / 2.0 - tw / 2.0;
+        cx = Math.Max(bounds.X, Math.Min(bounds.X + bounds.Width - tw, cx));
+
+        double y = region.Y + region.Height + ToolbarMargin;
+        if (y + th > bounds.Y + bounds.Height)
+        {
+            // 下方放不下 → 上方
+            y = region.Y - ToolbarMargin - th;
+            if (y < bounds.Y) y = bounds.Y; // 上方也放不下 → 钳制顶部
+        }
+        return new Point(cx, y);
     }
 }

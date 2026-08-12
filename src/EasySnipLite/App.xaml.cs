@@ -247,29 +247,22 @@ public partial class App : Application
     {
         if (_session is not null) return; // 已在截图流程中
         var session = new SelectionSession();
-        session.Completed += result =>
-        {
-            var region = session.SelectedRegion; // 先取区域(物理像素)再释放会话
-            FinishSession(); // 先关闭全屏 Topmost 遮罩，否则会挡住编辑器
-            // 延迟到事件处理之外再打开编辑器：在按键事件栈上关闭遮罩窗口后开模态循环会崩溃
-            Dispatcher.BeginInvoke(() => OpenEditor(result, region));
-        };
+        // issue #20：完成(复制并关闭)/保存/贴屏/取消 均由会话内联触发，不再打开独立编辑器窗口
+        session.Completed += _ => FinishSession(); // 复制已在会话内完成，遮罩随会话销毁
         session.SaveRequested += result =>
         {
             SaveImage(result);
             FinishSession();
         };
+        session.PinRequested += result =>
+        {
+            var region = session.SelectedRegion; // 先取区域(物理像素)再释放会话
+            FinishSession(); // 先关闭全屏 Topmost 遮罩，否则会挡住贴屏窗口
+            OpenPin(result, region);
+        };
         session.Cancelled += FinishSession;
         _session = session;
         session.Start();
-    }
-
-    /// <summary>Enter/双击确认 → 打开标注编辑器（M3）。托盘应用无主窗口，模态独立显示。</summary>
-    private void OpenEditor(BitmapSource image, Int32Rect? region)
-    {
-        var editor = new Editor.EditorWindow(image);
-        editor.PinRequested += pinned => OpenPin(pinned, region);
-        editor.ShowDialog();
     }
 
     /// <summary>打开贴屏窗口：位置=截图原位置(物理像素)，1:1 尺寸；region 缺失时屏幕居中兜底。步长取当前设置。</summary>
