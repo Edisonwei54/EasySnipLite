@@ -11,6 +11,7 @@ dotnet build EasySnipLite.slnx            # 构建（Debug 输出在 bin/Debug/n
 dotnet test EasySnipLite.slnx             # 运行全部单测（xUnit）
 dotnet test --filter "FullyQualifiedName~ChordDetectorTests"   # 跑指定测试
 powershell -ExecutionPolicy Bypass -File tools/verify-m1.ps1   # M1 端到端验证（热键→框选→剪贴板）
+powershell -ExecutionPolicy Bypass -File tools/verify-issue20.ps1   # issue #20 内联标注 E2E（工具栏出现/内联绘制/Esc 三级/无 error.log）
 powershell -ExecutionPolicy Bypass -File tools/verify-m7.ps1   # M7 发布冒烟（publish 单文件→热键→剪贴板）
 dotnet publish src/EasySnipLite -c Release -r win-x64 -o dist  # 单文件发布（M7 冒烟用）
 ```
@@ -29,7 +30,7 @@ src/EasySnipLite/          WPF 主程序（net10.0-windows, UseWPF+UseWindowsFor
   Localization/            AppResources.resx 三语（英/简/繁）+ LocaleService（运行时切换）
   Selection/               SelectionSession（会话协调）+ RegionSelectionWindow（全屏遮罩）+ AnnotationToolbarWindow（内联标注悬浮工具栏，issue #20）
   Stitching/               滚动长截图（M4 已实现但功能跳过，进度存档）
-  Editor/                  标注编辑器（M3 已实现：矢量标注/撤销重做/贴屏入口）
+  Editor/                  标注引擎（矢量标注/撤销重做；EditorWindow 自 issue #20 起不再被调用，源码保留）+ AnnotationCanvas（遮罩内联标注层复用）
   Settings/                SettingsWindow（M6 设置窗口，命名空间 SettingsUI——避开与 Settings 类型同名）
   Pin/                     贴屏（M5 已实现：贴屏窗口/穿透/缩放）
   Tray/                    TrayIconService（WinForms NotifyIcon）
