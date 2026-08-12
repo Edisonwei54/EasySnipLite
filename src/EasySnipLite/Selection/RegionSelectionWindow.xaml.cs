@@ -5,6 +5,8 @@ using System.Windows.Media;
 using System.Windows.Media.Imaging;
 using System.Windows.Shapes;
 using EasySnipLite.Core.Imaging;
+using EasySnipLite.Editor.Models;
+using EasySnipLite.Localization;
 
 namespace EasySnipLite.Selection;
 
@@ -20,11 +22,14 @@ public partial class RegionSelectionWindow : Window
     private const double MagnifierCellSize = 6; // 每物理像素放大到的逻辑像素
     private static readonly Size MagnifierSize = new(58, 76);
 
+    private static readonly System.Windows.Media.Brush SelectionFill = new SolidColorBrush(Color.FromArgb(0x12, 0xFF, 0xFF, 0xFF));
+
     private readonly MonitorCapture _frame;
     private readonly SelectionSession _session;
     private readonly WriteableBitmap _magBitmap;
     private readonly Rectangle[] _handles;
     private bool _showHandles;
+    private Point _emojiPoint; // 表情面板点击处的选区本地坐标（提交用）
 
     public RegionSelectionWindow(MonitorCapture frame, SelectionSession session)
     {
@@ -51,17 +56,33 @@ public partial class RegionSelectionWindow : Window
             HandleTop, HandleBottom, HandleLeft, HandleRight,
         };
 
+        TabSmile.Header = AppResources.EmojiCategorySmile;
+        TabGesture.Header = AppResources.EmojiCategoryGesture;
+        TabAnimal.Header = AppResources.EmojiCategoryAnimal;
+        TabFood.Header = AppResources.EmojiCategoryFood;
+        TabObject.Header = AppResources.EmojiCategoryObject;
+
         Cursor = Cursors.Cross;
         MouseLeftButtonDown += (_, e) =>
         {
             Focus();
-            _session.OnLeftButtonDown(this, e.GetPosition(RootCanvas));
+            CaptureMouse(); // 捕获:拖拽在工具栏/其他窗口上释放也能收到 MouseUp(坐标仍走全局轮询)
+            _session.OnLeftButtonDown(this, e.GetPosition(RootCanvas),
+                Keyboard.Modifiers.HasFlag(ModifierKeys.Alt));
         };
-        MouseLeftButtonUp += (_, _) => _session.OnLeftButtonUp();
-        MouseMove += (_, e) => _session.OnHover(this, e.GetPosition(RootCanvas));
+        MouseLeftButtonUp += (_, e) =>
+        {
+            _session.OnLeftButtonUp(this, e.GetPosition(RootCanvas));
+            ReleaseMouseCapture();
+        };
+        MouseMove += (_, e) => _session.OnHover(this, e.GetPosition(RootCanvas),
+            Keyboard.Modifiers.HasFlag(ModifierKeys.Alt));
         MouseLeave += (_, _) => Cursor = Cursors.Cross;
         PreviewKeyDown += OnPreviewKeyDown;
     }
+
+    /// <summary>本显示器 DpiScale（工具栏定位换算用）。</summary>
+    public double DpiScale => _frame.DpiScale;
 
     /// <summary>窗口内逻辑坐标 → 虚拟屏幕物理坐标。</summary>
     public Point LocalToVirtual(Point localPos) =>
@@ -83,6 +104,7 @@ public partial class RegionSelectionWindow : Window
             SizeLabel.Visibility = Visibility.Collapsed;
             HideHandles();
             UpdateMasks(null);
+            AnnotationLayer.Visibility = Visibility.Collapsed;
             return;
         }
 
@@ -109,6 +131,8 @@ public partial class RegionSelectionWindow : Window
         }
 
         SelectionRect.Visibility = Visibility.Visible;
+        // 标注模式:选区已冻结为图像,半透明白色填充只用于框选阶段,避免盖住标注
+        SelectionRect.Fill = _session.IsAnnotationActive ? Brushes.Transparent : SelectionFill;
         Canvas.SetLeft(SelectionRect, local.X);
         Canvas.SetTop(SelectionRect, local.Y);
         SelectionRect.Width = local.Width;
@@ -127,6 +151,38 @@ public partial class RegionSelectionWindow : Window
 
         UpdateHandles(local);
         UpdateMasks(local);
+        UpdateAnnotationLayer(s, dpi);
+    }
+
+    /// <summary>内联标注层（issue #20）：标注激活时在选区位置显示冻结图像 + 矢量对象，按 DpiScale 缩放到 1:1。</summary>
+    private void UpdateAnnotationLayer(Int32Rect selection, double dpi)
+    {
+        if (!_session.IsAnnotationActive || _session.AnnotationVm is not { } vm)
+        {
+            AnnotationLayer.Visibility = Visibility.Collapsed;
+            return;
+        }
+
+        AnnotationLayer.Visibility = Visibility.Visible;
+        AnnotationLayer.Image = _session.AnnotationImage;
+        AnnotationLayer.Objects = vm.Objects;
+        AnnotationLayer.Width = selection.Width;   // 物理像素单位，LayoutTransform 缩放到窗口逻辑尺寸
+        AnnotationLayer.Height = selection.Height;
+        Canvas.SetLeft(AnnotationLayer, (selection.X - _frame.PixelX) / dpi);
+        Canvas.SetTop(AnnotationLayer, (selection.Y - _frame.PixelY) / dpi);
+        AnnotationLayer.RenderTransform = new ScaleTransform(1.0 / dpi, 1.0 / dpi);
+        AnnotationLayer.InvalidateVisual();
+    }
+
+    /// <summary>标注对象/选中变化时重绘标注层。</summary>
+    public void InvalidateAnnotationLayer() => AnnotationLayer.InvalidateVisual();
+
+    /// <summary>显示表情选择面板（标注模式表情工具点击后调用，点击处即鼠标位置）。</summary>
+    public void ShowEmojiPanel(Point regionLocalPos)
+    {
+        _emojiPoint = regionLocalPos;
+        EmojiPopup.DataContext ??= new Editor.EmojiPalette();
+        EmojiPopup.IsOpen = true;
     }
 
     public void SetCursorForHandle(SelectionHandle handle)
@@ -261,6 +317,13 @@ public partial class RegionSelectionWindow : Window
         mask.Height = rect.Height;
     }
 
+    private void EmojiButton_Click(object sender, RoutedEventArgs e)
+    {
+        if (sender is Button { Content: string emoji })
+            _session.CommitEmoji(_emojiPoint, emoji);
+        EmojiPopup.IsOpen = false;
+    }
+
     private void OnPreviewKeyDown(object sender, KeyEventArgs e)
     {
         if (e.Key is Key.Left or Key.Right or Key.Up or Key.Down)
@@ -271,6 +334,28 @@ public partial class RegionSelectionWindow : Window
             int dy = e.Key == Key.Up ? -1 : e.Key == Key.Down ? 1 : 0;
             _session.OnNudge(dx, dy, shift);
             return;
+        }
+        // 标注模式快捷键（issue #20）：数字切工具 / 删除 / 撤销重做 / 复制保存
+        if (_session.IsAnnotationActive)
+        {
+            switch (e.Key)
+            {
+                case Key.D1: _session.SetAnnotationTool(AnnotationTool.Selection); e.Handled = true; return;
+                case Key.D2: _session.SetAnnotationTool(AnnotationTool.Rectangle); e.Handled = true; return;
+                case Key.D3: _session.SetAnnotationTool(AnnotationTool.Ellipse); e.Handled = true; return;
+                case Key.D4: _session.SetAnnotationTool(AnnotationTool.Arrow); e.Handled = true; return;
+                case Key.D5: _session.SetAnnotationTool(AnnotationTool.Freehand); e.Handled = true; return;
+                case Key.D6: _session.SetAnnotationTool(AnnotationTool.Highlighter); e.Handled = true; return;
+                case Key.D7: _session.SetAnnotationTool(AnnotationTool.Mosaic); e.Handled = true; return;
+                case Key.D8: _session.SetAnnotationTool(AnnotationTool.Text); e.Handled = true; return;
+                case Key.D9: _session.SetAnnotationTool(AnnotationTool.Emoji); e.Handled = true; return;
+                case Key.Delete: _session.DeleteSelected(); e.Handled = true; return;
+            }
+            var ctrl = Keyboard.Modifiers.HasFlag(ModifierKeys.Control);
+            var shift = Keyboard.Modifiers.HasFlag(ModifierKeys.Shift);
+            if (e.Key == Key.Z && ctrl && !shift) { _session.UndoAnnotation(); e.Handled = true; return; }
+            if (e.Key == Key.Y && ctrl || e.Key == Key.Z && ctrl && shift) { _session.RedoAnnotation(); e.Handled = true; return; }
+            if (e.Key == Key.C && ctrl) { _session.CopyToClipboard(); e.Handled = true; return; }
         }
         if (e.Key == Key.S && Keyboard.Modifiers.HasFlag(ModifierKeys.Control))
         {

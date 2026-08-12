@@ -77,7 +77,7 @@ $overlay = $wins | Where-Object { $_ -match '^[0-9]+\|1\|EasySnipLite$' }
 if ($overlay.Count -eq 0) { Log "FAIL: no visible overlay. all=$($wins -join '; ')"; Stop-Process -Id $proc.Id -Force; exit 1 }
 Log "OK: overlay visible (count=$($overlay.Count))"
 
-# 5. drag 300x200 region and confirm with Enter
+# 5. drag 300x200 region; Enter = complete (copy + close, issue #20 inline annotation)
 $x0 = 400; $y0 = 300
 [V.Native]::SetCursorPos($x0, $y0)
 Start-Sleep -Milliseconds 150
@@ -98,13 +98,6 @@ $winsAfter = [WinEnum]::List($proc.Id)
 $overlayAfter = $winsAfter | Where-Object { $_ -match '^[0-9]+\|1\|EasySnipLite$' }
 if ($overlayAfter.Count -gt 0) { Log 'FAIL: overlay still open after Enter'; Stop-Process -Id $proc.Id -Force; exit 1 }
 Log 'OK: overlay closed after Enter'
-
-# 5b. since M3, Enter opens the editor; press Enter again (Complete = copy + close)
-[V.Native]::keybd_event(0x0D, 0, 0, [UIntPtr]::Zero)
-[V.Native]::keybd_event(0x0D, 0, $KEYUP, [UIntPtr]::Zero)
-Start-Sleep -Seconds 1
-if ($proc.HasExited) { Log "FAIL: app crashed after Complete code=$($proc.ExitCode)"; exit 1 }
-Log 'OK: Complete copied and closed editor'
 
 # 6. clean run must NOT create error.log
 if (Test-Path $errorLog) { Log 'FAIL: error.log created on clean run'; Stop-Process -Id $proc.Id -Force; exit 1 }

@@ -159,4 +159,30 @@ public class UndoStackTests
         stack.Redo();
         Assert.Equal(2, value);
     }
+
+    // ---- Clear（issue #20 标注清空：Esc 一级清空标注后撤销栈同步清空） ----
+
+    [Fact]
+    public void Clear_RemovesUndoAndRedo()
+    {
+        var stack = new UndoStack();
+        stack.Push(new TransformCommand(() => { }, () => { }));
+        stack.Undo(); // 制造 redo 内容
+        stack.Push(new TransformCommand(() => { }, () => { }));
+
+        stack.Clear();
+
+        Assert.False(stack.CanUndo);
+        Assert.False(stack.CanRedo);
+        Assert.Equal(0, stack.UndoCount);
+    }
+
+    [Fact]
+    public void Clear_EmptyStack_NoThrow()
+    {
+        var stack = new UndoStack();
+        stack.Clear();
+        Assert.False(stack.CanUndo);
+        Assert.False(stack.CanRedo);
+    }
 }

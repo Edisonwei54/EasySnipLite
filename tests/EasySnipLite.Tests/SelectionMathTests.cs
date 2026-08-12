@@ -278,4 +278,76 @@ public class SelectionMathTests
         var pos = SelectionMath.MagnifierTopLeft(mouse, window, mag);
         Assert.Equal(new Point(SelectionMath.MagnifierOffset, SelectionMath.MagnifierOffset), pos);
     }
+
+    // ---- ToolbarPlacement（issue #20 悬浮标注工具栏定位，虚拟物理像素） ----
+
+    [Fact]
+    public void ToolbarPlacement_BelowRegionCentered()
+    {
+        var region = new Int32Rect(100, 100, 300, 200);
+        var bounds = new Int32Rect(0, 0, 1920, 1080);
+        // 400x60 逻辑像素 @ dpi1 → 物理 400x60，显示在选区下方、水平居中
+        var pos = SelectionMath.ToolbarPlacement(region, bounds, new Size(400, 60), 1.0);
+        Assert.Equal(50, pos.X, 3);   // 100 + 150 - 200
+        Assert.Equal(308, pos.Y, 3);  // 300 + 8
+    }
+
+    [Fact]
+    public void ToolbarPlacement_BelowOverflow_MovesAbove()
+    {
+        var region = new Int32Rect(100, 900, 300, 200);
+        var bounds = new Int32Rect(0, 0, 1920, 1080);
+        var pos = SelectionMath.ToolbarPlacement(region, bounds, new Size(400, 60), 1.0);
+        Assert.Equal(50, pos.X, 3);
+        Assert.Equal(832, pos.Y, 3); // 900 - 8 - 60
+    }
+
+    [Fact]
+    public void ToolbarPlacement_LeftClamped()
+    {
+        var region = new Int32Rect(0, 100, 50, 50);
+        var bounds = new Int32Rect(0, 0, 1920, 1080);
+        var pos = SelectionMath.ToolbarPlacement(region, bounds, new Size(400, 60), 1.0);
+        Assert.Equal(0, pos.X, 3);
+    }
+
+    [Fact]
+    public void ToolbarPlacement_RightClamped()
+    {
+        var region = new Int32Rect(1870, 100, 50, 50);
+        var bounds = new Int32Rect(0, 0, 1920, 1080);
+        var pos = SelectionMath.ToolbarPlacement(region, bounds, new Size(400, 60), 1.0);
+        Assert.Equal(1520, pos.X, 3); // 1920 - 400
+    }
+
+    [Fact]
+    public void ToolbarPlacement_NoSpaceBelowOrAbove_ClampsToBoundsTop()
+    {
+        var region = new Int32Rect(0, 0, 1920, 1080); // 全屏选区
+        var bounds = new Int32Rect(0, 0, 1920, 1080);
+        var pos = SelectionMath.ToolbarPlacement(region, bounds, new Size(400, 60), 1.0);
+        Assert.Equal(760, pos.X, 3); // 水平居中
+        Assert.Equal(0, pos.Y, 3);   // 上下均放不下 → 钳制顶部
+    }
+
+    [Fact]
+    public void ToolbarPlacement_AppliesDpiScale()
+    {
+        var region = new Int32Rect(100, 100, 300, 200);
+        var bounds = new Int32Rect(0, 0, 3840, 2160);
+        // 200x30 逻辑 @ dpi2 → 物理 400x60，定位与 dpi1 的 400x60 相同
+        var pos = SelectionMath.ToolbarPlacement(region, bounds, new Size(200, 30), 2.0);
+        Assert.Equal(50, pos.X, 3);
+        Assert.Equal(308, pos.Y, 3);
+    }
+
+    [Fact]
+    public void ToolbarPlacement_NegativeBoundsOrigin_Unchanged()
+    {
+        var region = new Int32Rect(100, 100, 300, 200);
+        var bounds = new Int32Rect(-1920, 0, 3840, 1080);
+        var pos = SelectionMath.ToolbarPlacement(region, bounds, new Size(400, 60), 1.0);
+        Assert.Equal(50, pos.X, 3);
+        Assert.Equal(308, pos.Y, 3);
+    }
 }

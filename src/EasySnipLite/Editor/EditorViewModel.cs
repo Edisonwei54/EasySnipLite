@@ -15,7 +15,7 @@ namespace EasySnipLite.Editor;
 /// </summary>
 public sealed class EditorViewModel : INotifyPropertyChanged
 {
-    public BitmapSource Image { get; }
+    public BitmapSource Image { get; private set; }
     public ObservableCollection<AnnotationObject> Objects { get; } = [];
     public UndoStack UndoStack { get; } = new();
 
@@ -169,6 +169,27 @@ public sealed class EditorViewModel : INotifyPropertyChanged
         foreach (var o in Objects) o.IsSelected = false;
         Selected = null;
         Invalidate();
+    }
+
+    // ---- 底图更换（issue #20 遮罩内联标注：选区调整后底图重组合） ----
+
+    /// <summary>更换标注底图（选区调整后重组合）。马赛克对象同步刷新源图。</summary>
+    public void SetBaseImage(BitmapSource image)
+    {
+        Image = image;
+        foreach (var o in Objects)
+        {
+            if (o is MosaicObject mosaic) mosaic.SourceImage = image;
+        }
+        Invalidate();
+    }
+
+    /// <summary>整体清空标注（对象 + 撤销栈），选区本身保留。</summary>
+    public void ClearAll()
+    {
+        Objects.Clear();
+        UndoStack.Clear();
+        ClearSelection();
     }
 
     // ---- 结果组合与输出 ----

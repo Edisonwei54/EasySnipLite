@@ -181,6 +181,28 @@
 1. **PowerShell 不展开 `$GITHUB_REF_NAME`**：runner 默认 shell 为 pwsh，`$GITHUB_REF_NAME` 是普通变量（空值），环境变量需 `$env:` 前缀——`gh release create ""` 报 `tag required when not running interactively`。修复：改用 `${{ github.ref_name }}` GitHub 表达式（任何 shell 都替换为字面值），PR #17 已修。教训：GitHub Actions 里取上下文值优先用 `${{ }}` 表达式，避免 shell 变量语法坑。
 2. 首次 tag 已推送但 Release 创建失败——无需保留：`git tag -d v1.0.0` + `git push origin :refs/tags/v1.0.0` 删除后重打即可（未创建 Release 时无残留）。
 
+### 维护期：内联标注（issue #20，2026-08-12 本次；单测 197/197 全绿；verify-issue20 E2E PASSED；verify-m7 冒烟仍 PASSED）
+**交付**：取消独立标注编辑器流程——框选完成（松开鼠标）即进入**内联标注**：选区冻结为图像（标注层 = Editor.AnnotationCanvas 复用），标注工具悬浮在选区下方（`Selection/AnnotationToolbarWindow`，无边框置顶、Focusable=False 不抢键盘焦点、按 `SelectionMath.ToolbarPlacement` 定位：下方居中→上方→钳制）；框选调整与标注**同时进行**：8 手柄缩放（标注保留、底图重组合、越界裁剪）、`Alt`+拖主体移动选区、方向键微调；快捷键沿用编辑器（数字 1-9 切工具、Delete、Ctrl+Z/Y、Ctrl+C/S）；动作：复制 / 保存 / 贴到屏幕 / 完成（复制并关闭）；**Esc 三级**：有标注先清空标注 → 有选区清空选区 → 取消会话；点选区外部重新框选 = 新截图（旧标注整体清空）。编辑器窗口（EditorWindow）不再被调用，源码保留（未来可扩展为「打开已有图片标注」入口）。
+
+**新增/修改**：
+- `Selection/AnnotationToolbarWindow.xaml(.cs)` — 悬浮工具栏窗口（工具/颜色/线宽/撤销重做/删除/复制/保存/贴屏/完成；事件转发到会话）
+- `Selection/SelectionMath.cs` — `ToolbarPlacement` 工具栏定位纯逻辑（7 单测）；`ToolbarMargin` 常量
+- `Selection/SelectionSession.cs` — 会话集成：`EditorViewModel` 持有 + 底图随选区重组合（`SetBaseImage`）、标注拖拽路由（轮询定时器驱动，跨屏安全）、工具栏装配、文字/表情输入、复制/保存/贴屏/完成动作、Esc 三级语义、重新框选清空标注
+- `Selection/RegionSelectionWindow.xaml(.cs)` — 内联标注层（复用 `Editor.AnnotationCanvas` + LayoutTransform 按 DpiScale 缩放 + ClipToBounds）+ 表情 Popup + Alt 修饰键 + 标注快捷键路由 + 鼠标捕获（拖拽在工具栏上释放不丢 MouseUp）+ 标注模式选区填充透明
+- `Editor/EditorViewModel.cs` — `Image` 可设置 + `SetBaseImage`（马赛克源图同步刷新）+ `ClearAll`
+- `Editor/UndoRedo/UndoStack.cs` — `Clear()`（2 单测）
+- `App.xaml.cs` — Completed→FinishSession（不再开编辑器）、新增 PinRequested 装配、移除 OpenEditor
+- `tools/verify-issue20.ps1` — issue #20 E2E（工具栏出现/内联标注/Enter 复制/像素对比/Esc 三级/无 error.log）**PASSED**
+- `tools/verify-m7.ps1` — 适配新流程（Enter 一次即完成复制+关闭，移除「Enter 二次开编辑器」步骤）
+
+**踩坑记录（重要）**：
+1. **`Brush` 类型二义性**（WPF `System.Windows.Media.Brush` vs WinForms `System.Drawing.Brush`）：GlobalUsings 未给 Brush 建别名，静态字段声明报 CS0104——全限定 `System.Windows.Media.Brush` 解决（或在 GlobalUsings 补别名）。
+2. **完成语义 = 复制并关闭**：OnConfirm 初稿只触发 Completed（App 仅关窗口），Enter/完成按钮不复制——编辑器时代的「Complete」复制逻辑在会话重构中必须显式保留（CopyToClipboard + Completed）。
+3. **工具栏窗口吞掉鼠标释放**：标注拖拽/手柄拖拽在工具栏上释放时 MouseUp 发给工具栏窗口（非遮罩）→ 会话永远等不到 OnLeftButtonUp（拖拽卡死）——遮罩窗口 MouseDown 时 `CaptureMouse()`（坐标仍走 Win32 全局轮询，捕获只影响事件送达），MouseUp 后释放。
+4. **选区半透明白色填充盖住标注层**：SelectionRect Fill `#12FFFFFF` 在标注模式下仍铺在标注层之上（7% 白色蒙尘）——标注激活时 Fill 换 Transparent（XAML 初值保留给框选阶段）。
+5. **重新框选残留旧标注**：点选区外部开新框选后旧标注对象仍按旧选区本地坐标渲染（错位）——新框选分支显式 `_vm.ClearAll()`（重新框选 = 新截图）。
+6. **Esc 语义扩展为三级**：Esc 有标注先清标注（Objects + UndoStack 同步 `ClearAll`）→ 再 Esc 清选区 → 再 Esc 取消会话；与 M2 的「两级取消」文档语义需同步更新。
+
 ## 四、接下来要做什么
 
 | 里程碑 | 内容 | 验证方式 |
@@ -189,6 +211,7 @@
 | M7 打磨+发布 | 边界处理、错误提示、单文件 publish 冒烟、README | ✅ 已完成（单测 188/188，发布冒烟通过，PR #7 已合并；发布说明见 README「发布」小节） |
 | M6 设置+i18n | 快捷键录制、语言/保存目录/滚轮步长设置、三语切换、开机自启（注册表 Run） | ✅ 已完成（单测 176/176，手工 E2E 已验证，PR #6 已合并） |
 | —— | **M0-M7 全部完成**，进入维护期（缺陷修复/新功能建议） | — |
+| #20 | 内联标注（取消独立编辑器，悬浮工具栏 + 框选标注同时进行） | ✅ 已完成（单测 197/197，verify-issue20 E2E PASSED） |
 
 ## 五、总计划（架构与流程）
 

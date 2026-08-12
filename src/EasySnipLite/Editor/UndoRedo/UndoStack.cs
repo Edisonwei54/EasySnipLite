@@ -77,4 +77,11 @@ public sealed class UndoStack
         command.Execute();
         _undo.Add(command);
     }
+
+    /// <summary>清空全部撤销/重做历史（标注整体清空时用）。</summary>
+    public void Clear()
+    {
+        _undo.Clear();
+        _redo.Clear();
+    }
 }
