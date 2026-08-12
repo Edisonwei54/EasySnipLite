@@ -194,6 +194,7 @@
 - `App.xaml.cs` — Completed→FinishSession（不再开编辑器）、新增 PinRequested 装配、移除 OpenEditor
 - `tools/verify-issue20.ps1` — issue #20 E2E（工具栏出现/内联标注/Enter 复制/像素对比/Esc 三级/无 error.log）**PASSED**
 - `tools/verify-m7.ps1` — 适配新流程（Enter 一次即完成复制+关闭，移除「Enter 二次开编辑器」步骤）
+- `tools/verify-m3.ps1`（Enter 开编辑器流程）已被新流程取代，标注相关 E2E 以 verify-issue20.ps1 为准
 
 **踩坑记录（重要）**：
 1. **`Brush` 类型二义性**（WPF `System.Windows.Media.Brush` vs WinForms `System.Drawing.Brush`）：GlobalUsings 未给 Brush 建别名，静态字段声明报 CS0104——全限定 `System.Windows.Media.Brush` 解决（或在 GlobalUsings 补别名）。
@@ -215,6 +216,6 @@
 
 ## 五、总计划（架构与流程）
 
-- **架构**：App（装配/托盘/i18n/设置）· Core（Win32/热键/捕获/剪贴板）· Selection（遮罩框选）· Editor（标注）· Stitching（长截图）· Pin（贴屏）· Tests（xUnit 纯逻辑单测）。零第三方运行时依赖。
+- **架构**：App（装配/托盘/i18n/设置）· Core（Win32/热键/捕获/剪贴板）· Selection（遮罩框选 + 内联标注）· Editor（标注引擎，EditorWindow 保留未调用）· Stitching（长截图）· Pin（贴屏）· Tests（xUnit 纯逻辑单测）。零第三方运行时依赖。
 - **流程**：TDD 先行纯逻辑（已用于 ChordDetector）；每里程碑自动化/手工验证通过后 git commit；PR 由用户手动合并，合并后清除本地分支（远程分支保留）；发布验证：单文件 publish 冒烟已加入里程碑验证（verify-m7.ps1：热键→框选→剪贴板→无异常日志）。
 - 完整设计：`docs/superpowers/specs/2026-08-07-easysniplite-design.md`；各里程碑 spec/plan 均在仓库内 `docs/superpowers/specs/` 与 `docs/superpowers/plans/`（早期总计划 `C:\Users\situweihao\.claude\plans\windows-delegated-kahan.md` 为历史存档）
