@@ -20,6 +20,7 @@ dotnet publish src/EasySnipLite -c Release -r win-x64 -o dist  # 单文件发布
 ## 目录结构
 
 ```
+AGENTS.md                  入口指针文件（其他 agent 工具如 Copilot/Gemini 经此发现 CLAUDE.md）
 .github/                   GitHub Actions（ci.yml 构建测试 / codeql.yml 安全扫描 / release.yml 打 tag 自动发布）+ dependabot.yml + Issue/PR 模板
 src/EasySnipLite/          WPF 主程序（net10.0-windows, UseWPF+UseWindowsForms）
   Core/Native/Win32.cs     全部 P/Invoke 集中于此
