@@ -23,3 +23,6 @@ tools/*-result.txt
 .idea/
 Thumbs.db
 Desktop.ini
+
+# ---- verify-issue23 运行产物（截图断言用，脚本本身保留） ----
+tools/verify-issue23/

@@ -12,7 +12,7 @@ dotnet test EasySnipLite.slnx             # 运行全部单测（xUnit）
 dotnet test --filter "FullyQualifiedName~ChordDetectorTests"   # 跑指定测试
 powershell -ExecutionPolicy Bypass -File tools/verify-m1.ps1   # M1 端到端验证（热键→框选→剪贴板）
 powershell -ExecutionPolicy Bypass -File tools/verify-issue20.ps1   # issue #20 内联标注 E2E（工具栏出现/内联绘制/Esc 三级/无 error.log）
-powershell -ExecutionPolicy Bypass -File tools/verify-issue23.ps1   # issue #23 缺陷修复 E2E（实时预览/工具栏持久/选区主体拖拽移动，需环境输入可用）
+powershell -ExecutionPolicy Bypass -File tools/verify-issue23.ps1   # issue #23 缺陷修复 E2E（实时预览/工具栏持久/选区主体拖拽移动；含环境预检+重试）
 powershell -ExecutionPolicy Bypass -File tools/verify-m7.ps1   # M7 发布冒烟（publish 单文件→热键→剪贴板）
 dotnet publish src/EasySnipLite -c Release -r win-x64 -o dist  # 单文件发布（M7 冒烟用）
 ```
@@ -61,6 +61,6 @@ docs/                      PROGRESS.md（里程碑进度）、superpowers/specs/
 - M6 设置+i18n ✅（设置窗口/截图+穿透双热键录制（截图单击/双击自动识别）/三语 resx 即时切换/settings.json 持久化/开机自启；单测 176/176 全绿，手工 E2E 已验证，PR #6 已合并）
 - M7 打磨+发布 ✅（错误处理管线/启动+保存失败气泡/边界小修/单文件 publish 冒烟/版本 1.0.0；单测 188/188 全绿，verify-m7 通过，PR #7 已合并）
 - issue #20 内联标注 ✅（取消独立编辑器：悬浮工具栏 + 框选调整与标注同时进行；单测 197/197 全绿，verify-issue20 E2E 通过，Esc 三级语义）
-- issue #23 缺陷修复 ✅（实时标注预览 / 工具栏 Owner 恒在遮罩之上不被盖住 / Selection 工具主体拖拽移动选区；单测 203/203 全绿，verify-issue23 E2E 待环境恢复后运行确认）
+- issue #23 缺陷修复 ✅（实时标注预览 / 工具栏 Owner 恒在遮罩之上不被盖住 / Selection 工具主体拖拽移动选区 + OnConfirm 解耦先关窗再复制；单测 203/203 全绿，verify-issue23 + verify-issue20 E2E 均 PASSED，PR #24 已合并，issue #23 已关闭）
 - 全部里程碑完成，进入维护期（缺陷修复/新功能建议）
 - 维护期 GitHub 配置：CI（PR/push main 自动 build+test+CodeQL 扫描）、分支保护（main 必须 PR 合并且 build-test 通过）、Dependabot（依赖漏洞+每周版本巡检）、Release 自动发布（`git tag v1.0.0 && git push origin v1.0.0` → 单文件 exe 挂 Releases，首个 v1.0.0 已发布）、CONTRIBUTING/SECURITY/Issue+PR 模板
