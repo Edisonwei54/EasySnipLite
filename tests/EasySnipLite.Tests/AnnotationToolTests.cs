@@ -165,6 +165,62 @@ public class AnnotationToolTests
 
     // ---- Text / Emoji ----
 
+    // ---- 实时预览（issue #23）：拖拽中 Preview 持续更新，完成后清空 ----
+
+    [Fact]
+    public void RectangleTool_Move_ExposesLivePreview()
+    {
+        var tool = new RectangleTool(TestColor, 2);
+        tool.MouseDown(new Point(10, 20));
+        Assert.Null(tool.Preview);
+
+        tool.MouseMove(new Point(100, 80));
+
+        var preview = Assert.IsType<RectangleObject>(tool.Preview);
+        Assert.Equal(new Rect(10, 20, 90, 60), preview.Bounds);
+        Assert.Equal(TestColor, preview.Color);
+
+        tool.MouseUp(new Point(100, 80));
+        Assert.Null(tool.Preview);
+    }
+
+    [Fact]
+    public void FreehandTool_Move_PreviewTracksPoints()
+    {
+        var tool = new FreehandTool(TestColor, 2);
+        tool.MouseDown(new Point(0, 0));
+        tool.MouseMove(new Point(5, 5));
+        tool.MouseMove(new Point(10, 10));
+
+        var preview = Assert.IsType<FreehandObject>(tool.Preview);
+        Assert.Equal(3, preview.Points.Length);
+
+        tool.MouseUp(new Point(15, 15));
+        Assert.Null(tool.Preview);
+    }
+
+    [Fact]
+    public void ArrowTool_Move_PreviewEndsAtCursor()
+    {
+        var tool = new ArrowTool(TestColor, 2);
+        tool.MouseDown(new Point(0, 0));
+        tool.MouseMove(new Point(40, 30));
+
+        var preview = Assert.IsType<ArrowObject>(tool.Preview);
+        Assert.Equal(new Point(40, 30), preview.End);
+
+        tool.MouseUp(new Point(40, 30));
+        Assert.Null(tool.Preview);
+    }
+
+    [Fact]
+    public void TextTool_Preview_AlwaysNull()
+    {
+        var tool = new TextTool(TestColor, 24);
+
+        Assert.Null(tool.Preview);
+    }
+
     [Fact]
     public void TextTool_Create_MakesTextObjectAtPoint()
     {

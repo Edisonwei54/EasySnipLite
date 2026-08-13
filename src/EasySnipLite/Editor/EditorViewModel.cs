@@ -1,5 +1,6 @@
 using System.Collections.ObjectModel;
 using System.ComponentModel;
+using System.Windows;
 using System.Windows.Media;
 using System.Windows.Media.Imaging;
 using EasySnipLite.Editor.Models;
@@ -52,6 +53,22 @@ public sealed class EditorViewModel : INotifyPropertyChanged
 
     public bool HasSelection => Selected is not null;
 
+    /// <summary>实时预览对象（issue #23）：拖拽中由工具暴露，渲染层按 PreviewOffset 平移绘制；无拖拽为 null。</summary>
+    public AnnotationObject? Preview
+    {
+        get
+        {
+            var preview = _tool?.Preview;
+            if (preview is MosaicObject mosaic) mosaic.SourceImage = Image; // 马赛克预览需底图才能渲染
+            return preview;
+        }
+    }
+
+    /// <summary>预览对象的平移量（选择/移动工具拖拽中为累计偏移，其余为 0）。</summary>
+    public Vector PreviewOffset => _tool is SelectionTool { IsActive: true, Selected: not null } sel
+        ? new Vector(sel.DeltaX, sel.DeltaY)
+        : default;
+
     /// <summary>画布需要重绘（对象/选中变化）。</summary>
     public event Action? RenderInvalidated;
 
@@ -83,9 +100,8 @@ public sealed class EditorViewModel : INotifyPropertyChanged
     {
         if (_tool is null) return;
         _tool.MouseMove(p);
-        // 选中移动过程中实时刷新
-        if (_tool is SelectionTool { Selected: not null } sel && (sel.DeltaX != 0 || sel.DeltaY != 0))
-            Invalidate();
+        // 实时预览：拖拽中每次移动都刷新（issue #23）
+        Invalidate();
     }
 
     public void OnMouseUp(Point p)

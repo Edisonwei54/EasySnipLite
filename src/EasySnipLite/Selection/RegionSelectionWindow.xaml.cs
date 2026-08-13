@@ -5,6 +5,7 @@ using System.Windows.Media;
 using System.Windows.Media.Imaging;
 using System.Windows.Shapes;
 using EasySnipLite.Core.Imaging;
+using EasySnipLite.Editor;
 using EasySnipLite.Editor.Models;
 using EasySnipLite.Localization;
 
@@ -171,11 +172,22 @@ public partial class RegionSelectionWindow : Window
         Canvas.SetLeft(AnnotationLayer, (selection.X - _frame.PixelX) / dpi);
         Canvas.SetTop(AnnotationLayer, (selection.Y - _frame.PixelY) / dpi);
         AnnotationLayer.RenderTransform = new ScaleTransform(1.0 / dpi, 1.0 / dpi);
+        SyncPreview(vm);
         AnnotationLayer.InvalidateVisual();
     }
 
-    /// <summary>标注对象/选中变化时重绘标注层。</summary>
-    public void InvalidateAnnotationLayer() => AnnotationLayer.InvalidateVisual();
+    /// <summary>标注对象/选中/预览变化时重绘标注层（issue #23 实时预览）。</summary>
+    public void InvalidateAnnotationLayer(EditorViewModel vm)
+    {
+        SyncPreview(vm);
+        AnnotationLayer.InvalidateVisual();
+    }
+
+    private void SyncPreview(EditorViewModel vm)
+    {
+        AnnotationLayer.Preview = vm.Preview;
+        AnnotationLayer.PreviewOffset = vm.PreviewOffset;
+    }
 
     /// <summary>显示表情选择面板（标注模式表情工具点击后调用，点击处即鼠标位置）。</summary>
     public void ShowEmojiPanel(Point regionLocalPos)
