@@ -101,4 +101,35 @@ public class SelectionToolTests
         Assert.False(tool.Moved);
         Assert.Equal(0, tool.DeltaX);
     }
+
+    // ---- 实时预览（issue #23）：选中对象移动时暴露预览与偏移 ----
+
+    [Fact]
+    public void SelectionTool_Drag_ExposesPreviewAndDelta()
+    {
+        var obj = Rect(0, 0, 100, 100);
+        var tool = new SelectionTool(new List<AnnotationObject> { obj });
+
+        tool.MouseDown(new Point(50, 50));
+        Assert.Same(obj, tool.Preview);
+
+        tool.MouseMove(new Point(80, 30));
+        Assert.Same(obj, tool.Preview);
+        Assert.Equal(30, tool.DeltaX);
+        Assert.Equal(-20, tool.DeltaY);
+
+        tool.MouseUp(new Point(80, 30));
+        Assert.Null(tool.Preview);
+    }
+
+    [Fact]
+    public void SelectionTool_DownOnEmpty_PreviewNull()
+    {
+        var obj = Rect(0, 0, 100, 100);
+        var tool = new SelectionTool(new List<AnnotationObject> { obj });
+
+        tool.MouseDown(new Point(500, 500));
+
+        Assert.Null(tool.Preview);
+    }
 }

@@ -8,6 +8,7 @@ using EasySnipLite.Core.Imaging;
 using EasySnipLite.Core.Native;
 using EasySnipLite.Editor;
 using EasySnipLite.Editor.Models;
+using EasySnipLite.Editor.Tools;
 using EasySnipLite.Localization;
 
 namespace EasySnipLite.Selection;
@@ -16,7 +17,8 @@ namespace EasySnipLite.Selection;
 /// 一次框选会话:管理每显示器一个的遮罩窗口,统一使用虚拟屏幕物理像素坐标。
 /// 状态机:Idle(无选区)→ Selecting(拖拽框选)→ Adjusting(8 手柄/内部移动/方向键微调)。
 /// issue #20:框选完成(松开鼠标)即进入内联标注模式——选区冻结为图像,标注工具悬浮在选区下方,
-/// 框选调整(手柄/Alt+拖主体/方向键)与标注可同时进行,无需 Enter 打开独立编辑器。
+/// 框选调整(手柄/拖主体移动/方向键)与标注可同时进行,无需 Enter 打开独立编辑器。
+/// issue #23:主体拖拽在 Selection 工具且未命中标注对象时 = 移动选区(无需 Alt);标注实时预览。
 /// 拖拽期间用 DispatcherTimer 轮询光标(支持跨显示器连续拖拽)。
 /// </summary>
 public sealed class SelectionSession : IDisposable
@@ -95,7 +97,7 @@ public sealed class SelectionSession : IDisposable
         var virtualPos = source.LocalToVirtual(localPos);
         _activeWindow = source;
 
-        // Adjusting 态:命中手柄 → 调整拖动;Alt+主体 → 整体移动;主体(无 Alt) → 标注;外部 → 重新框选
+        // Adjusting 态:命中手柄 → 调整拖动;Alt+主体 → 整体移动;主体(无 Alt) → 标注或移动选区;外部 → 重新框选
         if (_mode == SessionMode.Adjusting && _selection is { } sel)
         {
             var handle = SelectionMath.HitTest(sel, virtualPos, HandleHitRadius);
@@ -112,6 +114,18 @@ public sealed class SelectionSession : IDisposable
                 }
                 if (IsAnnotationActive && _vm is not null)
                 {
+                    // Selection 工具且未命中标注对象 → 主体拖拽 = 移动选区（issue #23，无需 Alt）
+                    bool drawingTool = _vm.ActiveTool != AnnotationTool.Selection;
+                    bool objectHit = HitTester.HitTest(_vm.Objects, ToRegionLocal(virtualPos, sel)) is not null;
+                    if (!drawingTool && !objectHit)
+                    {
+                        _activeHandle = SelectionHandle.Body;
+                        _dragStart = virtualPos;
+                        _dragStartSelection = sel;
+                        _pollTimer.Start();
+                        source.ShowMagnifier();
+                        return;
+                    }
                     // 标注拖拽:点击选区内部直接绘制,轮询定时器驱动光标(跨屏安全)
                     _annotationDrag = true;
                     _vm.OnMouseDown(ToRegionLocal(virtualPos, sel));
@@ -212,17 +226,28 @@ public sealed class SelectionSession : IDisposable
         SaveRequested?.Invoke(CurrentImage());
     }
 
-    /// <summary>鼠标悬停(未按下):命中测试更新光标;标注模式主体内无 Alt 时为十字。</summary>
+    /// <summary>
+    /// 鼠标悬停(未按下):命中测试更新光标。
+    /// 主体内:Alt / Selection 工具且未命中对象(可移动选区) → SizeAll;标注中 → 十字。
+    /// </summary>
     public void OnHover(RegionSelectionWindow source, Point localPos, bool altDown)
     {
         var virtualPos = source.LocalToVirtual(localPos);
         var handle = _mode == SessionMode.Adjusting && _selection is { } sel
             ? SelectionMath.HitTest(sel, virtualPos, HandleHitRadius)
             : SelectionHandle.None;
-        if (IsAnnotationActive && handle == SelectionHandle.Body)
-            source.SetCursorForHandle(altDown ? SelectionHandle.Body : SelectionHandle.None);
+        if (IsAnnotationActive && handle == SelectionHandle.Body && _vm is not null && _selection is { } sel2)
+        {
+            bool drawingTool = _vm.ActiveTool != AnnotationTool.Selection;
+            bool objectHit = HitTester.HitTest(_vm.Objects, ToRegionLocal(virtualPos, sel2)) is not null;
+            source.SetCursorForHandle(altDown || (!drawingTool && !objectHit)
+                ? SelectionHandle.Body
+                : SelectionHandle.None);
+        }
         else
+        {
             source.SetCursorForHandle(handle);
+        }
     }
 
     // ---- 内联标注操作（工具栏/快捷键转发到视图模型） ----
@@ -337,7 +362,7 @@ public sealed class SelectionSession : IDisposable
             _vm = new EditorViewModel(Compose(sel));
             _vm.RenderInvalidated += () =>
             {
-                foreach (var window in _windows) window.InvalidateAnnotationLayer();
+                foreach (var window in _windows) window.InvalidateAnnotationLayer(_vm!);
             };
             _vm.TextInputRequested += ShowTextInput;
             _vm.EmojiInputRequested += ShowEmojiPanel;
@@ -349,6 +374,9 @@ public sealed class SelectionSession : IDisposable
     {
         if (_toolbar is not null) return;
         _toolbar = new AnnotationToolbarWindow();
+        // issue #23：遮罩窗口激活（点击/标注）时会提到置顶带最前盖住工具栏 →
+        // 设 Owner（被拥有的窗口恒在 Owner 之上），工具栏不被遮罩/掩膜盖住、点击不落空
+        if (GetAnchorWindow() is { } anchor) _toolbar.Owner = anchor;
         _toolbar.ToolSelected += tool => { if (_vm is not null) _vm.ActiveTool = tool; };
         _toolbar.ColorSelected += color => { if (_vm is not null) _vm.StrokeColor = color; };
         _toolbar.StrokeWidthChanged += width => { if (_vm is not null) _vm.StrokeWidth = width; };
@@ -365,7 +393,19 @@ public sealed class SelectionSession : IDisposable
             if (_selection is not null) PinRequested?.Invoke(CurrentImage());
         };
         _toolbar.CompleteRequested += OnConfirm;
+        _toolbar.SetTool(_vm.ActiveTool); // 初始工具态同步（默认 Selection 按钮点亮）
         _toolbar.Show();
+    }
+
+    /// <summary>工具栏 Owner 锚点：选区中心所在显示器窗口（工具栏不会被遮罩盖住）。</summary>
+    private RegionSelectionWindow? GetAnchorWindow()
+    {
+        if (_selection is { } sel)
+        {
+            var center = new Point(sel.X + sel.Width / 2.0, sel.Y + sel.Height / 2.0);
+            if (_windows.FirstOrDefault(w => w.ContainsVirtual(center)) is { } hit) return hit;
+        }
+        return _activeWindow ?? _windows.FirstOrDefault();
     }
 
     private void HideToolbar()

@@ -26,6 +26,8 @@ public sealed class TextTool(Color color, double fontSize) : IAnnotationTool
 
     public bool IsActive => false;
 
+    public AnnotationObject? Preview => null;
+
     public void MouseDown(Point p) => _click = p;
 
     public void MouseMove(Point p)
@@ -52,6 +54,8 @@ public sealed class EmojiTool(double fontSize) : IAnnotationTool
     public event Action<Point>? Clicked;
 
     public bool IsActive => false;
+
+    public AnnotationObject? Preview => null;
 
     public void MouseDown(Point p) => _click = p;
 

@@ -31,15 +31,21 @@ public sealed class ArrowTool(Color color, double strokeWidth) : IAnnotationTool
 
     public bool IsActive { get; private set; }
 
+    /// <summary>实时预览：按 起点→当前光标 重建箭头（issue #23）。</summary>
+    public AnnotationObject? Preview { get; private set; }
+
     public void MouseDown(Point p)
     {
         _start = p;
         IsActive = true;
         _result = null;
+        Preview = null;
     }
 
     public void MouseMove(Point p)
     {
+        if (!IsActive) return;
+        Preview = new ArrowObject(_start, p, color, strokeWidth);
     }
 
     public void MouseUp(Point p)
@@ -47,6 +53,7 @@ public sealed class ArrowTool(Color color, double strokeWidth) : IAnnotationTool
         if (!IsActive) return;
         IsActive = false;
         _result = new ArrowObject(_start, p, color, strokeWidth);
+        Preview = null;
     }
 
     public AnnotationObject? TakeResult()
@@ -80,12 +87,16 @@ public class FreehandTool : IAnnotationTool
 
     public bool IsActive { get; private set; }
 
+    /// <summary>实时预览：按当前采样点集重建折线（issue #23），MouseUp 后清空。</summary>
+    public AnnotationObject? Preview { get; private set; }
+
     public void MouseDown(Point p)
     {
         _points.Clear();
         _points.Add(p);
         IsActive = true;
         _result = null;
+        Preview = null;
     }
 
     public void MouseMove(Point p)
@@ -96,6 +107,7 @@ public class FreehandTool : IAnnotationTool
         var dy = p.Y - last.Y;
         if (dx * dx + dy * dy >= MinSampleDistance * MinSampleDistance)
             _points.Add(p);
+        Preview = CreateObject();
     }
 
     public void MouseUp(Point p)
@@ -104,6 +116,7 @@ public class FreehandTool : IAnnotationTool
         MouseMove(p); // 终点采样（IsActive 仍为 true；与上一点过近则跳过）
         IsActive = false;
         _result = CreateObject();
+        Preview = null;
     }
 
     public AnnotationObject? TakeResult()

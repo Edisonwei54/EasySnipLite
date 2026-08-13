@@ -15,6 +15,9 @@ public interface IAnnotationTool
     /// <summary>拖拽是否进行中（Editor 用于指针捕获与光标切换）。</summary>
     bool IsActive { get; }
 
+    /// <summary>拖拽进行中的实时预览对象（未提交，仅供渲染）；空闲/未命中时为 null。</summary>
+    AnnotationObject? Preview { get; }
+
     /// <summary>取走 MouseUp 产出的对象（仅一次有效，未完成时返回 null）。</summary>
     AnnotationObject? TakeResult();
 }
@@ -31,6 +34,9 @@ public abstract class DragToolBase : IAnnotationTool
 
     public bool IsActive { get; private set; }
 
+    /// <summary>实时预览：每次移动按当前矩形重建（issue #23），MouseUp 后清空。</summary>
+    public AnnotationObject? Preview { get; private set; }
+
     protected abstract AnnotationObject CreateObject(Rect rect);
 
     public virtual void MouseDown(Point p)
@@ -39,11 +45,14 @@ public abstract class DragToolBase : IAnnotationTool
         Current = p;
         IsActive = true;
         _result = null;
+        Preview = null;
     }
 
     public virtual void MouseMove(Point p)
     {
-        if (IsActive) Current = p;
+        if (!IsActive) return;
+        Current = p;
+        Preview = CreateObject(Normalize(Start, Current));
     }
 
     public virtual void MouseUp(Point p)
@@ -52,6 +61,7 @@ public abstract class DragToolBase : IAnnotationTool
         Current = p;
         IsActive = false;
         _result = CreateObject(Normalize(Start, Current));
+        Preview = null;
     }
 
     public AnnotationObject? TakeResult()

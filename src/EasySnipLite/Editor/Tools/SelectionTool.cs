@@ -28,6 +28,9 @@ public sealed class SelectionTool(IList<AnnotationObject> objects) : IAnnotation
     /// <summary>按下的位置命中的对象（未命中时为 null）。</summary>
     public AnnotationObject? Selected { get; private set; }
 
+    /// <summary>实时预览：拖拽中暴露被移动对象本体（渲染层按 Delta 平移，issue #23）。</summary>
+    public AnnotationObject? Preview => IsActive ? Selected : null;
+
     /// <summary>相对按下点的累计偏移。</summary>
     public double DeltaX { get; private set; }
     public double DeltaY { get; private set; }
