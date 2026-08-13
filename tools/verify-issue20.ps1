@@ -122,7 +122,13 @@ function Key-Tap($vk) {
 }
 
 function Save-Clipboard($path) {
-    $img = [System.Windows.Forms.Clipboard]::GetImage()
+    # Enter 完成后复制与关窗解耦（OnConfirm 先关会话再写剪贴板）→ 读取需容忍短暂延迟/剪贴板竞争
+    $img = $null
+    for ($i = 0; $i -lt 10; $i++) {
+        $img = [System.Windows.Forms.Clipboard]::GetImage()
+        if ($null -ne $img) { break }
+        Start-Sleep -Milliseconds 500
+    }
     if ($null -eq $img) { Log "FAIL: no clipboard image at $path"; return $false }
     $img.Save($path, [System.Drawing.Imaging.ImageFormat]::Png)
     $img.Dispose()

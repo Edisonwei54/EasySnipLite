@@ -215,8 +215,9 @@ public sealed class SelectionSession : IDisposable
     public void OnConfirm()
     {
         if (_selection is not { Width: > 0, Height: > 0 }) return;
-        CopyToClipboard(); // 完成 = 复制并关闭（与编辑器 Complete 一致）
-        Completed?.Invoke(CurrentImage());
+        var image = CurrentImage();
+        Completed?.Invoke(image); // 先完成会话（关窗），剪贴板竞争不阻塞关闭
+        CopyToClipboard(image);   // 再复制：SetDataObject 竞争时可能短暂卡顿，但窗口已关
     }
 
     /// <summary>Ctrl+S:保存当前选区+标注(由 App 弹保存对话框)。</summary>
@@ -265,11 +266,14 @@ public sealed class SelectionSession : IDisposable
     public void CommitEmoji(Point regionLocal, string emoji) => _vm?.CommitEmoji(regionLocal, emoji);
 
     /// <summary>复制当前组合(底图+标注)到剪贴板,失败走错误管线。</summary>
-    public void CopyToClipboard()
+    public void CopyToClipboard() => CopyToClipboard(CurrentImage());
+
+    /// <summary>复制指定组合图到剪贴板,失败走错误管线。</summary>
+    private void CopyToClipboard(BitmapSource image)
     {
         try
         {
-            ClipboardEx.SetImage(CurrentImage());
+            ClipboardEx.SetImage(image);
         }
         catch (Exception ex)
         {

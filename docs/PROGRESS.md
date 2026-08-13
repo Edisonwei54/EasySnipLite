@@ -204,7 +204,7 @@
 5. **重新框选残留旧标注**：点选区外部开新框选后旧标注对象仍按旧选区本地坐标渲染（错位）——新框选分支显式 `_vm.ClearAll()`（重新框选 = 新截图）。
 6. **Esc 语义扩展为三级**：Esc 有标注先清标注（Objects + UndoStack 同步 `ClearAll`）→ 再 Esc 清选区 → 再 Esc 取消会话；与 M2 的「两级取消」文档语义需同步更新。
 
-### 维护期：issue #23 缺陷修复（2026-08-13 本次；单测 203/203 全绿；verify-issue23 E2E 脚本就绪——本会话环境输入注入异常（热键无法送达 app 全局钩子，12:05 后持续，非代码问题），待环境恢复后运行确认；verify-issue20 回归同样待环境恢复后重跑）
+### 维护期：issue #23 缺陷修复（2026-08-13 本次；单测 203/203 全绿；verify-issue23 E2E PASSED；verify-issue20 回归在环境正常窗口 PASSED——本机会话自 12:06 起间歇性异常：锁屏期间输入/截图失效，解锁后剪贴板写入全局失败（连 PowerShell SetText 都失败，非 app 问题），需等环境恢复正常窗口重跑确认）
 **交付**：修复内联标注的三个交互缺陷——①**实时标注预览**：拖拽矩形/椭圆/箭头/画笔/荧光笔/马赛克时实时显示预览（之前松手才出现）；选中对象移动也实时跟随（预览按偏移渲染，原位不重影）。②**工具栏持久性**：标注/交互后工具栏被全屏置顶遮罩窗口盖住（遮罩激活时提升到置顶带最前）→ 点击工具栏实为命中遮罩、触发「重新框选」清空标注并塌缩选区（即「功能键无作用 / 工具栏消失」）——工具栏设 `Owner`（被拥有的窗口恒在 Owner 之上），永远不被遮罩/掩膜盖住。③**选区主体拖拽移动**：Selection 工具（默认）且未命中标注对象时，拖动主体 = 移动选区（无需 Alt）；Alt+拖主体与 8 手柄调整保持不变；命中标注对象时仍为对象选择/移动。
 
 **新增/修改**：
@@ -214,7 +214,8 @@
 - `Editor/EditorViewModel.cs` — `OnMouseMove` 拖拽中始终 `Invalidate()`；暴露 `Preview`/`PreviewOffset`（马赛克预览注入底图）
 - `Editor/AnnotationCanvas.cs` — 渲染预览层（与 Objects 同实例时跳过原位按偏移平移；选中虚线框跟随）
 - `Selection/RegionSelectionWindow.xaml(.cs)` — 标注层同步预览（`SyncPreview`），`InvalidateAnnotationLayer(vm)` 携带预览
-- `Selection/SelectionSession.cs` — 工具栏 `Owner` 锚点（选区中心所在窗口）；主体拖拽移动选区（Selection 工具 + 未命中对象）；悬停光标（可移动时 SizeAll）
+- `Selection/SelectionSession.cs` — 工具栏 `Owner` 锚点（选区中心所在窗口）；主体拖拽移动选区（Selection 工具 + 未命中对象）；悬停光标（可移动时 SizeAll）；**OnConfirm 解耦：先完成会话（关窗）再写剪贴板**——剪贴板被占用时 SetDataObject 会重试阻塞 UI 线程，原先会话关闭被拖住（Enter 后遮罩不消失）；现窗口立即关闭，复制随后进行（失败走错误管线气泡）
+- `tools/verify-issue20.ps1` — Save-Clipboard 增加轮询等待（复制与关窗解耦后读取需容忍短暂延迟/剪贴板竞争）
 - `tests/` — 6 个预览纯逻辑单测（矩形/画笔/箭头/文字/选择工具预览与偏移）
 - `tools/verify-issue23.ps1` — issue #23 E2E（实时预览截图断言 / 工具栏不被掩膜盖住 / 点击工具栏不塌缩选区 / 手柄缩放 / 主体拖拽移动；场景间重启 app；环境预检：光标可动 + 截图可用 + 热键后遮罩出现，含重试）
 
@@ -222,6 +223,8 @@
 1. **置顶窗口激活会盖住同置顶带的后显窗口**：RegionSelectionWindow 与工具栏都是 Topmost，用户在选区内按下鼠标（`Focus()`/激活）后全屏遮罩提到置顶带最前 → 工具栏被掩膜（50% 黑）盖住、点击落到遮罩上触发「重新框选」→ 标注清空 + 选区塌缩。修复用 WPF `Owner`（被拥有窗口恒在 Owner 之上），无需动置顶/激活逻辑。
 2. **拖拽工具的实时预览需要三层配合**：工具暴露 Preview（每次移动重建）→ VM `OnMouseMove` 无条件 Invalidate → 画布渲染预览（马赛克预览需注入底图 SourceImage）。只加 Invalidate 不渲染预览对象是无效的。
 3. **E2E 环境的输入注入会间歇性失效**（光标/键盘注入/CopyFromScreen 偶发几分钟不可用，非代码问题）：verify-issue23 加了环境预检（光标可动 + 截图可用 + 热键后遮罩出现）+ 重试；失效时应等待环境恢复后重跑，勿误判为产品回归。
+4. **剪贴板写入全局失败（ExternalException 0x800401D0）是系统级异常**：本机会话锁屏/恢复后剪贴板写入偶发/持续失败（连 PowerShell `Clipboard.SetText` 都失败、`GetOpenClipboardWindow` 无占用者），与 app 无关——app 侧行为正确（异常走 AppErrors 气泡 + error.log）。E2E 中剪贴板断言失败时应先验证环境剪贴板是否可写，勿误判回归。
+5. **Enter 后遮罩不消失的根因（顺带修复）**：`OnConfirm` 先 `CopyToClipboard` 再 `Completed`，剪贴板被占用时 WinForms `SetDataObject` 内部重试阻塞 UI 线程 → 会话关闭被拖住。解耦后会话先完成（窗口立即关），复制随后进行。此缺陷原始代码同样存在（已用 git checkout 原代码 + 相同 E2E 循环对比证明）。
 
 ## 四、接下来要做什么
 
