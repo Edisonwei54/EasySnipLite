@@ -1,4 +1,4 @@
-# Issue #20 E2E verification: inline annotation overlay (no editor window)
+﻿# Issue #20 E2E verification: inline annotation overlay (no editor window)
 # Scenarios:
 #   A. hotkey -> drag 300x200 -> mouse-up -> toolbar window visible below region
 #      Enter (complete = copy+close) -> clipboard 300x200 clean ref
@@ -70,15 +70,23 @@ if ($proc.HasExited) { Log "FAIL: app exited code=$($proc.ExitCode)"; exit 1 }
 Log "OK: app started pid=$($proc.Id)"
 
 function Invoke-Capture {
-    [V.Native]::keybd_event($VK_CTRL, 0, 0, [UIntPtr]::Zero)
-    [V.Native]::keybd_event($VK_SPACE, 0, 0, [UIntPtr]::Zero)
-    [V.Native]::keybd_event($VK_SPACE, 0, $KEYUP, [UIntPtr]::Zero)
-    Start-Sleep -Milliseconds 150
-    [V.Native]::keybd_event($VK_SPACE, 0, 0, [UIntPtr]::Zero)
-    [V.Native]::keybd_event($VK_SPACE, 0, $KEYUP, [UIntPtr]::Zero)
-    Start-Sleep -Milliseconds 100
-    [V.Native]::keybd_event($VK_CTRL, 0, $KEYUP, [UIntPtr]::Zero)
-    Start-Sleep -Seconds 1
+    # 环境防抖：输入注入可能被会话波动吞掉 -> 重试并验证遮罩出现
+    for ($try = 0; $try -lt 4; $try++) {
+        [V.Native]::keybd_event($VK_CTRL, 0, 0, [UIntPtr]::Zero)
+        [V.Native]::keybd_event($VK_SPACE, 0, 0, [UIntPtr]::Zero)
+        [V.Native]::keybd_event($VK_SPACE, 0, $KEYUP, [UIntPtr]::Zero)
+        Start-Sleep -Milliseconds 150
+        [V.Native]::keybd_event($VK_SPACE, 0, 0, [UIntPtr]::Zero)
+        [V.Native]::keybd_event($VK_SPACE, 0, $KEYUP, [UIntPtr]::Zero)
+        Start-Sleep -Milliseconds 100
+        [V.Native]::keybd_event($VK_CTRL, 0, $KEYUP, [UIntPtr]::Zero)
+        Start-Sleep -Seconds 1
+        $visible = @((Get-Windows $proc.Id) | Where-Object { ($_ -split '\|')[1] -eq '1' }).Count
+        if ($visible -gt 0) { return }
+        Log "WARN: overlay not visible after hotkey (try $($try + 1))"
+        Start-Sleep -Seconds 3
+    }
+    throw 'hotkey did not open overlay after 4 tries'
 }
 
 function Get-Windows($procId) { return [WinEnum]::List($procId) }
@@ -163,6 +171,7 @@ function Images-Differ($a, $b) {
 
 # ---- Scenario A: capture -> toolbar appears -> Enter copies clean region ----
 Log '--- Scenario A: toolbar + complete (copy+close) ---'
+try { [System.Windows.Forms.Clipboard]::Clear() } catch { }  # 清空剪贴板：避免读到上一场景的陈旧内容
 Invoke-Capture
 Drag-Region 200 200 300 200
 $toolbar = Get-ToolbarWindow
@@ -177,6 +186,7 @@ if (-not (Assert-Size $clean 300 200)) { Stop-Process -Id $proc.Id -Force; exit 
 
 # ---- Scenario B: annotate inline -> Enter copies annotated ----
 Log '--- Scenario B: inline rect annotation ---'
+try { [System.Windows.Forms.Clipboard]::Clear() } catch { }  # 清空剪贴板：避免读到上一场景的陈旧内容
 Invoke-Capture
 Drag-Region 200 200 300 200
 if (-not (Get-ToolbarWindow)) { Log 'FAIL: toolbar missing in scenario B'; Stop-Process -Id $proc.Id -Force; exit 1 }
@@ -195,6 +205,7 @@ Log 'OK: annotated copy differs from clean copy'
 
 # ---- Scenario C: Esc level-1 clears annotations -> Enter copies clean ----
 Log '--- Scenario C: Esc clears annotations ---'
+try { [System.Windows.Forms.Clipboard]::Clear() } catch { }  # 清空剪贴板：避免读到上一场景的陈旧内容
 Invoke-Capture
 Drag-Region 200 200 300 200
 if (-not (Get-ToolbarWindow)) { Log 'FAIL: toolbar missing in scenario C'; Stop-Process -Id $proc.Id -Force; exit 1 }
